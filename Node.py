@@ -16,7 +16,7 @@ ZERO = group.random(ZR, seed=59)*0
 ONE = group.random(ZR, seed=60)*0+1
 
 #Class representing a participant in the scheme. t is the threshold and k is the number of participants
-class node:
+class Node:
     def __init__ (self, k, t, secret, nodeid, seed=None):
         # Random polynomial coefficients constructed in the form
         #[c       x        x^2        ...  x^(t-1)
@@ -43,14 +43,19 @@ class node:
         #reconstructionpoints is the list of points needed to reconstruct each second step polynomial
         self.reconstructionpoints = [ZERO] * (k + 1)
         self.sumpoint = [ZERO]
+
     def get_SK(self, dim, i):
         return self.SKs[dim-1][i]
+
     def get_nodeid(self):
         return self.nodeid
+
     def receive_poly(self, poly, sender):
         self.receivedpoly[sender] = poly
+
     def get_poly(self, sender):
         return self.receivedpoly[sender]
+
     def receive_reconstruction(self, point, polynum):
         if point[0] == "UNDEFINED" or point[1] == "UNDEFINED":
             return
@@ -58,6 +63,7 @@ class node:
             self.reconstructionpoints[polynum] = [point]
         else:
             self.reconstructionpoints[polynum].append(point)
+
     def restore_reconstruction_polys(self):
         mysum = ZERO
         for polynum in range(1,len(self.reconstructionpoints)):
@@ -72,5 +78,7 @@ class node:
                 return
             mysum += (interpolate_at_x(self.reconstructionpoints[polynum], self.nodeid, order=self.t))
         self.sumpoint = [self.nodeid, mysum]
+
     def get_sumpoint(self):
         return self.sumpoint
+

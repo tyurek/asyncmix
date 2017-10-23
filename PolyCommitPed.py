@@ -15,7 +15,7 @@ g2.initPP()
 ZERO = group.random(ZR, seed=59)*0
 ONE = group.random(ZR, seed=60)*0+1
 
-class polycommit_ped:
+class PolyCommitPed:
     def __init__ (self, t, group=group, seed=None):
         self.group = group
         self.g = self.group.random(G1, seed=seed)
@@ -31,6 +31,7 @@ class polycommit_ped:
             self.pk.append(self.g**(self.alpha**i))
         for i in range(t+1):
             self.pk.append(self.h**(self.alpha**i))
+
     def commit (self, poly):
         self.poly = poly
         self.c = ONE
@@ -44,8 +45,10 @@ class polycommit_ped:
             i += 1
         #c should be equivalent to (self.g **(f(poly, self.alpha))) * (self.h **(f(self.secretpoly, self.alpha)))
         return self.c
+
     def open (self):
         return {'c': self.c, 'poly': self.poly, 'secretpoly': self.secretpoly} 
+
     def verify_poly (c, poly, secretpoly):
         tempc = ONE
         i = 0
@@ -57,6 +60,7 @@ class polycommit_ped:
             tempc *= item ** secretpoly[i]
             i += 1
         return c == tempc
+
     def create_witness(self, i):
         psi = polynomial_divide([self.poly[0] - f(self.poly,i)] + self.poly[1:], [ONE*i*-1,ONE])
         psihat = polynomial_divide([self.secretpoly[0] - f(self.secretpoly,i)] + self.secretpoly[1:], [ONE*i*-1,ONE])
@@ -72,6 +76,7 @@ class polycommit_ped:
             j += 1
         #witness should be equivalent to (self.g **(f(psi, self.alpha))) * (self.h **(f(psihat, self.alpha)))
         return {'polyeval' : f(self.poly, i), 'secretpolyeval' : f(self.secretpoly, i), 'witness': witness}
+
     def verify_eval(self, c, i, polyeval, secretpolyeval, witness):
         lhs =  group.pair_prod(c, self.g)
         rhs = group.pair_prod(witness, self.pk[1] / (self.g ** i)) * group.pair_prod(self.g**polyeval * self.h**secretpolyeval, self.g)
