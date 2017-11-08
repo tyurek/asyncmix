@@ -28,20 +28,21 @@ def polynomial_divide(numerator, denominator):
             temp[i+diff] = temp[i+diff] - (factor * denominator[i])
         temp = temp[:len(temp)-1]
     return factors
+
 # Polynomial projection (evaluate the bivariate polynomial at a given y to get a univariate polynomial)
-def projf(poly, y, power = 1):
-#Note that ZERO ** 0 evaluates to 0 rather than 1, so this function will behave incorrectly when power = 0.
-#However, there is no need to call this function that way for this protocol
+def projf(poly, y):
+#Note that ZERO ** 0 evaluates to 0 rather than 1, so this function requires some light tweaking to work.
     y = ONE * y
     t = len(poly)
     out = [ZERO] * t
     for i in range(t):
         for j in range(t):
-            if i == 0 and j == 0:
-                out[i] += (poly[i][j] ** power) * (y ** (j))
-            else:
+            if j == 0:
                 out[i] += (poly[i][j]) * (y ** (j))
+            else:
+                out[i] += (poly[i][j])
     return out
+
 # Polynomial evaluation
 def f(poly, x):
     if type(poly) is not list:
@@ -52,6 +53,7 @@ def f(poly, x):
         y += coeff * xx
         xx *= x
     return y
+
 #interpolates a list of cordinates of the form [x,y] and evaulates at given x
 def interpolate_at_x(coords, x, order=-1):
     if order == -1:
@@ -73,3 +75,18 @@ def lagrange_at_x(S,j,x):
     num = reduce(mul, [x - jj  for jj in S if jj != j], ONE)
     den = reduce(mul, [j - jj  for jj in S if jj != j], ONE)
     return num / den
+
+#this is necessary because ints have a limited size
+def hexstring_to_ZR(string):
+    i = len(string) - 1
+    out = ZERO
+    while i >= 0:
+        if i > 0:
+            temp = ONE * 2
+            temp = temp ** (i*4)
+        else:
+            temp = ONE
+        out = out + temp*int(string[i],16)
+        i = i - 1
+    return out
+

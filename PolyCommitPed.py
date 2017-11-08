@@ -14,40 +14,48 @@ g2 = group.hash('geng2', G2)
 g2.initPP()
 ZERO = group.random(ZR, seed=59)*0
 ONE = group.random(ZR, seed=60)*0+1
+'''
+alpha = group.random(ZR, seed=seed)
+pkg = group.random(G1, seed=seed)
+pkh = group.random(G1, seed=seed)
+t = 5
+pk = []
+for i in range(t+1):
+    pk.append(pkg**(alpha**i))
+for i in range(t+1):
+    pk.append(pkh**(alpha**i))
+'''
 
 class PolyCommitPed:
-    def __init__ (self, t, group=group, seed=None):
+    def __init__ (self, t, pk, group=group, seed=None):
         self.group = group
-        self.g = self.group.random(G1, seed=seed)
-        self.h = self.group.random(G1, seed=seed)
+        self.pk = pk
+        self.g = pk[0]
+        self.h = pk[t+1]
         self.t = t
-        #In practice, PK will be distributively generated with alpha unknown. It is created here for simplicity.
-        self.alpha = self.group.random(ZR, seed=seed)
-        #secretpoly is the polynomial phi hat which is used to make the polynomial commitment
-        self.secretpoly = list(group.random(ZR, count=t+1, seed=seed))
+        self.seed = seed
         self.c = ONE
-        self.pk = []
-        for i in range(t+1):
-            self.pk.append(self.g**(self.alpha**i))
-        for i in range(t+1):
-            self.pk.append(self.h**(self.alpha**i))
 
-    def commit (self, poly):
-        self.poly = poly
-        self.c = ONE
+    def commit (self, poly, secretpoly):
+        #self.poly = poly
+        #secretpoly is the polynomial phi hat which is used to make the polynomial commitment
+        #self.secretpoly = secretpoly
+        c = ONE
+        #if secretpoly == None:
+        #    secretpoly = list(self.group.random(ZR, count=self.t+1, seed=self.seed))
         i = 0
         for item in self.pk[:self.t+1]:
-            self.c *= item ** poly[i]
+            c *= item ** poly[i]
             i += 1
         i = 0
         for item in self.pk[self.t+1:]:
-            self.c *= item ** self.secretpoly[i]
+            c *= item ** secretpoly[i]
             i += 1
         #c should be equivalent to (self.g **(f(poly, self.alpha))) * (self.h **(f(self.secretpoly, self.alpha)))
-        return self.c
+        return c
 
-    def open (self):
-        return {'c': self.c, 'poly': self.poly, 'secretpoly': self.secretpoly} 
+    #def open (self):
+    #    return {'c': self.c, 'poly': self.poly, 'secretpoly': self.secretpoly} 
 
     def verify_poly (c, poly, secretpoly):
         tempc = ONE
@@ -61,9 +69,9 @@ class PolyCommitPed:
             i += 1
         return c == tempc
 
-    def create_witness(self, i):
-        psi = polynomial_divide([self.poly[0] - f(self.poly,i)] + self.poly[1:], [ONE*i*-1,ONE])
-        psihat = polynomial_divide([self.secretpoly[0] - f(self.secretpoly,i)] + self.secretpoly[1:], [ONE*i*-1,ONE])
+    def create_witness(self, poly, secretpoly, i):
+        psi = polynomial_divide([poly[0] - f(poly,i)] + poly[1:], [ONE*i*-1,ONE])
+        psihat = polynomial_divide([secretpoly[0] - f(secretpoly,i)] + secretpoly[1:], [ONE*i*-1,ONE])
         witness = ONE
         j = 0
         for item in self.pk[:self.t]:
@@ -75,7 +83,7 @@ class PolyCommitPed:
             witness *= item ** psihat[j]
             j += 1
         #witness should be equivalent to (self.g **(f(psi, self.alpha))) * (self.h **(f(psihat, self.alpha)))
-        return {'polyeval' : f(self.poly, i), 'secretpolyeval' : f(self.secretpoly, i), 'witness': witness}
+        return witness
 
     def verify_eval(self, c, i, polyeval, secretpolyeval, witness):
         lhs =  group.pair_prod(c, self.g)

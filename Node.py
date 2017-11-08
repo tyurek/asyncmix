@@ -30,7 +30,7 @@ class Node:
         self.SKs = [ZERO] * k
         #SKs[j] contains all the polynomial projections for dimension j
         for j in range(k):
-            for i in range(0, k + 1): 
+            for i in range(0, k + 1):
                 if self.SKs[j] == ZERO:
                     self.SKs[j] = [projf(self.a, i, power=(j+1))]
                 else:
