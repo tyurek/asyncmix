@@ -37,7 +37,7 @@ def projf(poly, y):
     out = [ZERO] * t
     for i in range(t):
         for j in range(t):
-            if j == 0:
+            if j != 0:
                 out[i] += (poly[i][j]) * (y ** (j))
             else:
                 out[i] += (poly[i][j])
@@ -63,9 +63,27 @@ def interpolate_at_x(coords, x, order=-1):
     for coord in sortedcoords:
         xs.append(coord[0])
     S = set(xs[0:order])
-    out = ZERO
+    #out = ZERO
+    out = ONE * (coords[0][1] - coords[0][1])
     for i in range(order):
         out = out + (lagrange_at_x(S,xs[i],x) * sortedcoords[i][1])
+    return out
+
+#Turns out a separate interpolation function for commitments is unnecessary
+def interpolate_commitment_at_x(coords, x, order = -1):
+    if order == -1:
+        order = len(coords)
+    xs = []
+    sortedcoords = sorted(coords, key=lambda x: x[0])
+    for coord in sortedcoords:
+        xs.append(coord[0])
+    S = set(xs[0:order])
+    out = ONE
+    for i in range(order):
+        if i == 0:
+            out = (sortedcoords[i][1] ** (lagrange_at_x(S,xs[i],x)))
+        else:
+            out = out * (sortedcoords[i][1] ** (lagrange_at_x(S,xs[i],x)))
     return out
 
 def lagrange_at_x(S,j,x):
@@ -88,5 +106,38 @@ def hexstring_to_ZR(string):
             temp = ONE
         out = out + temp*int(string[i],16)
         i = i - 1
+    return out
+
+def intstring_to_ZR(string):
+    i = len(string) - 1
+    out = ZERO
+    while i >= 0:
+        if i > 0:
+            temp = ONE * 10
+            temp = temp ** (i)
+        else:
+            temp = ONE
+        #print string[i]
+        out = out + temp*int(string[i])
+        i = i - 1
+    return out
+
+#Check that a subset of t+1 points will correctly interpolate to the polynomial which contains all points
+def check_commitment_integrity(commitments, t):
+    points = []
+    i = 0
+    for commitment in commitments:
+        points.append([i, commitment])
+        i = i + 1
+    #for commitment in commitments:
+    #    sub = str(commitment)[1:len(str(commitment))-1].replace(" ","")
+    #    x = intstring_to_ZR(sub.split(",")[0])
+    #    y = intstring_to_ZR(sub.split(",")[1])
+    #    points.append([x,y])
+    #print points
+    out = True
+    for i in range(t+1,len(commitments)):
+        if interpolate_at_x(points[:t+1], points[i][0]) != (points[i ][1]):
+            out = False
     return out
 

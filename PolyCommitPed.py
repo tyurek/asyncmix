@@ -57,7 +57,7 @@ class PolyCommitPed:
     #def open (self):
     #    return {'c': self.c, 'poly': self.poly, 'secretpoly': self.secretpoly} 
 
-    def verify_poly (c, poly, secretpoly):
+    def verify_poly (self, c, poly, secretpoly):
         tempc = ONE
         i = 0
         for item in self.pk[:self.t+1]:
