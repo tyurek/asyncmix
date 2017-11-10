@@ -63,13 +63,14 @@ def interpolate_at_x(coords, x, order=-1):
     for coord in sortedcoords:
         xs.append(coord[0])
     S = set(xs[0:order])
-    #out = ZERO
+    #The following line makes it so this code works for both members of G and ZR
     out = ONE * (coords[0][1] - coords[0][1])
     for i in range(order):
         out = out + (lagrange_at_x(S,xs[i],x) * sortedcoords[i][1])
     return out
 
 #Turns out a separate interpolation function for commitments is unnecessary
+#but I'll leave it here in case it's useful later on
 def interpolate_commitment_at_x(coords, x, order = -1):
     if order == -1:
         order = len(coords)
@@ -117,7 +118,6 @@ def intstring_to_ZR(string):
             temp = temp ** (i)
         else:
             temp = ONE
-        #print string[i]
         out = out + temp*int(string[i])
         i = i - 1
     return out
@@ -129,15 +129,8 @@ def check_commitment_integrity(commitments, t):
     for commitment in commitments:
         points.append([i, commitment])
         i = i + 1
-    #for commitment in commitments:
-    #    sub = str(commitment)[1:len(str(commitment))-1].replace(" ","")
-    #    x = intstring_to_ZR(sub.split(",")[0])
-    #    y = intstring_to_ZR(sub.split(",")[1])
-    #    points.append([x,y])
-    #print points
     out = True
     for i in range(t+1,len(commitments)):
-        if interpolate_at_x(points[:t+1], points[i][0]) != (points[i ][1]):
-            out = False
+        out = out and (interpolate_at_x(points[:t+1], points[i][0]) == (points[i ][1]))
     return out
 
