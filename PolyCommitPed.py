@@ -14,17 +14,6 @@ g2 = group.hash('geng2', G2)
 g2.initPP()
 ZERO = group.random(ZR, seed=59)*0
 ONE = group.random(ZR, seed=60)*0+1
-'''
-alpha = group.random(ZR, seed=seed)
-pkg = group.random(G1, seed=seed)
-pkh = group.random(G1, seed=seed)
-t = 5
-pk = []
-for i in range(t+1):
-    pk.append(pkg**(alpha**i))
-for i in range(t+1):
-    pk.append(pkh**(alpha**i))
-'''
 
 class PolyCommitPed:
     def __init__ (self, t, pk, group=group, seed=None):

@@ -59,6 +59,7 @@ class VNode:
             for i in range(k+1):
                 witnesses.append(self.pc.create_witness(self.projas[i], self.projahats[i], j))
             self.witnessvectors.append(witnesses)
+        #Create the polynomial of hashes of commitments and commit to it
         for c in self.commitments:
             #not sure if there's an agreed upon way to hash a pairing element to something outside the group
             #so I SHA256 hash the bitstring representation of the element
@@ -67,13 +68,19 @@ class VNode:
         self.hashcommit = self.pc2.commit(self.hashpoly, self.hashpolyhat)
 
     #send a "send" message to party member j
-    def send_send(self, j):
+    def send_sendmsg(self, j):
         sendmsg = {}
+        #One commitment to the polynomial of hashes of commitments
         sendmsg['hashcommit'] = self.hashcommit
+        #List of commitments to casted polynomials, k+1 commitments in all (where k is the number of participants)
         sendmsg['commitments'] = self.commitments
+        #Polynomial (degree t) used to commit to the polynomial of hashes
         sendmsg['hashpolyhat'] = self.hashpolyhat
+        #List of witnesses to the evaluation of k+1 different points on the polynomial f(j,y) (which is also f(x,j))
         sendmsg['witnesses'] = self.witnessvectors[j]
+        #The polynomial (degree t) f(x,j)
         sendmsg['poly'] = self.projas[j]
+        #The polynomial (degree t) used to commit to f(x,j)
         sendmsg['polyhat'] = self.projahats[j]
         return sendmsg
     
