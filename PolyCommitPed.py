@@ -26,12 +26,8 @@ class PolyCommitPed:
         self.c = ONE
 
     def commit (self, poly, secretpoly):
-        #self.poly = poly
         #secretpoly is the polynomial phi hat which is used to make the polynomial commitment
-        #self.secretpoly = secretpoly
         c = ONE
-        #if secretpoly == None:
-        #    secretpoly = list(self.group.random(ZR, count=self.t+1, seed=self.seed))
         i = 0
         for item in self.pk[:self.t+1]:
             c *= item ** poly[i]
