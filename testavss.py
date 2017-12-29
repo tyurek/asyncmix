@@ -88,10 +88,29 @@ p5.receive_msg(p3.send_readymsg(5))
 p5.receive_msg(p4.send_readymsg(5))
 
 #END SH PHASE
+p1.receive_msg(p2.send_recsharemsg())
+p1.receive_msg(p3.send_recsharemsg())
+p1.receive_msg(p4.send_recsharemsg())
+p1.receive_msg(p5.send_recsharemsg())
 
-secretcoords = []
-secretcoords.append([1, p1.send_recsharemsg()['polypoint']])
-secretcoords.append([2, p2.send_recsharemsg()['polypoint']])
-secretcoords.append([3, p3.send_recsharemsg()['polypoint']])
-secretcoords.append([4, p4.send_recsharemsg()['polypoint']])
-print "The secret is: " + str(interpolate_at_x(secretcoords,0))
+p2.receive_msg(p1.send_recsharemsg())
+p2.receive_msg(p3.send_recsharemsg())
+p2.receive_msg(p4.send_recsharemsg())
+p2.receive_msg(p5.send_recsharemsg())
+
+p3.receive_msg(p1.send_recsharemsg())
+p3.receive_msg(p2.send_recsharemsg())
+p3.receive_msg(p4.send_recsharemsg())
+p3.receive_msg(p5.send_recsharemsg())
+
+p4.receive_msg(p1.send_recsharemsg())
+p4.receive_msg(p2.send_recsharemsg())
+p4.receive_msg(p3.send_recsharemsg())
+p4.receive_msg(p5.send_recsharemsg())
+
+p5.receive_msg(p1.send_recsharemsg())
+p5.receive_msg(p2.send_recsharemsg())
+p5.receive_msg(p3.send_recsharemsg())
+p5.receive_msg(p4.send_recsharemsg())
+
+

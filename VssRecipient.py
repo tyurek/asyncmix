@@ -48,6 +48,7 @@ class VssRecipient:
         self.interpolatedpolyatzero = None
         self.interpolatedpolyhatatzero = None
         self.readymessages = [None] * (k+1)
+        self.recsharemessages = [None] * (k+1)
         #Technically these following two lists will contain hashes of commitments to hashes, as we only need to count how many duplicates we have
         self.echoedhashcommits = [None] * (k+1)
         self.readyhashcommits = [None] * (k+1)
@@ -96,27 +97,61 @@ class VssRecipient:
                             #We're sharing whatever hash polynomial commitment we received t + 1 of
                             self.share = key == hashlib.sha256(group.serialize(self.hashcommit)).hexdigest()
                             self.hashcommit = msg['hashcommit']
-            #Note that invalid messages would not ever be added to the list, so this is a safe way to count them
+            if not self.ready:
+                return
             validmessagecount = 0
-            validsharemessagecount = 0
             for message in self.readymessages:
-                if message is not None:
+                if message is not None and message['hashcommit'] == self.hashcommit:
                     validmessagecount += 1
-                    if message['share']:
-                        validsharemessagecount += 1
-            if validmessagecount >= (self.k - self.t) and validsharemessagecount >= (self.t + 1):
-                self.recshare = True
+            if validmessagecount >= (self.k - self.t):
                 interpolatedpolycoords = []
                 interpolatedpolyhatcoords = []
+                interpolatedcommitmentcoords = []
+                interpolatedwitnesscoords = []
                 for message in self.readymessages:
-                    if message is None or not message['share']:
+                    if message is None or not message['share'] or message['hashcommit'] != self.hashcommit:
                         continue
                     interpolatedpolycoords.append([message['id'], message['polypoint']])
                     interpolatedpolyhatcoords.append([message['id'], message['polyhatpoint']])
+                    interpolatedcommitmentcoords.append([message['id'], message['commitment']])
+                    interpolatedwitnesscoords.append([message['id'], message['polywitness']])
                     if len(interpolatedpolycoords) == (self.t + 1):
                         break
                 self.interpolatedpolyatzero = interpolate_at_x(interpolatedpolycoords, x=0)
                 self.interpolatedpolyhatatzero = interpolate_at_x(interpolatedpolyhatcoords, x=0)
+                self.interpolatedzerocommitment = interpolate_at_x(interpolatedcommitmentcoords, x=0)
+                self.interpolatedzerowitness = interpolate_at_x(interpolatedwitnesscoords, x=0)
+                self.recshare = True
+                #Check the validity of any recshare messages we may have received before we could have checked them
+                for i in range(len(self.recsharemessages)):
+                    if self.recsharemessages[i] is None:
+                        continue
+                    if not self.check_recshare_correctness(self.recsharemessages[i]):
+                        self.recsharemessages[i] = None
+                    
+                    
+        if msg['type'] == 'recshare':
+            #Ignore messages where we have already received a message from that sender
+            #Still hold onto messages we receive even if we can't yet validate them
+            if self.recsharemessages[msg['id']] is not None:
+                return
+            if not self.recshare:
+                self.recsharemessages[msg['id']] = msg
+                return
+            if not self.check_recshare_correctness(msg):
+                print "Invalid message!"
+                return
+            self.recsharemessages[msg['id']] = msg
+            msgcount = 0
+            for msg in self.recsharemessages:
+                if msg is not None:
+                    msgcount += 1
+            if msgcount == self.t + 1:
+                secretcoords = []
+                for msg in self.recsharemessages:
+                    if msg is not None:
+                        secretcoords.append([msg['id'], msg['polypoint']])
+                print "Node " + str(self.nodeid) + ": The secret is " + str(interpolate_at_x(secretcoords,0))
 
     def check_send_correctness(self, sendmsg):
         #verify commitments can be interpolated from each other
@@ -140,17 +175,9 @@ class VssRecipient:
         return self.pc.verify_eval(readymsg['commitment'], self.nodeid, readymsg['polypoint'], readymsg['polyhatpoint'], readymsg['polywitness']) and \
             self.pc2.verify_eval(readymsg['hashcommit'], readymsg['id'], f(self.hashpoly, readymsg['id']), \
             readymsg['hashpolyhatpoint'], readymsg['hashpolywitness'])
-        #    self.pc2.verify_eval(readymsg['hashcommit'], readymsg['id'], hexstring_to_ZR(hashlib.sha256(group.serialize(readymsg['commitment'])).hexdigest()), \
-        #    readymsg['hashpolyhatpoint'], readymsg['hashpolywitness'])
-        #hashpoly = list(group.random(ZR, count=self.k+1, seed=seed))
-        #hashpoly = self.hashpoly
-        #print self.hashpolyhat
-        #print self.hashpoly
-        #hashpolyhat = list(group.random(ZR, count=self.k+1, seed=seed))
-        #hashcommit = self.pc2.commit(hashpoly, hashpolyhat)
-        #witness = self.pc2.create_witness(hashpoly, hashpolyhat, self.nodeid)
-        #print self.pc2.verify_eval(hashcommit, self.nodeid, f(hashpoly, self.nodeid), f(hashpolyhat, self.nodeid), witness)
-        #return True
+
+    def check_recshare_correctness(self, recsharemsg):
+        return self.pc.verify_eval(self.interpolatedzerocommitment, recsharemsg['id'], recsharemsg['polypoint'], recsharemsg['polyhatpoint'],  recsharemsg['polywitness'])
 
     def send_echomsg(self):
         if type(self.sendecho) is not bool:
@@ -193,6 +220,8 @@ class VssRecipient:
         recsharemsg['type'] = 'recshare'
         recsharemsg['id'] = self.nodeid
         recsharemsg['polypoint'] = self.interpolatedpolyatzero
+        recsharemsg['polyhatpoint'] = self.interpolatedpolyhatatzero
+        recsharemsg['polywitness'] = self.interpolatedzerowitness
         return recsharemsg
         
 
