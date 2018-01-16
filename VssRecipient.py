@@ -54,6 +54,8 @@ class VssRecipient:
         self.readyhashcommits = [None] * (k+1)
 
     def receive_msg(self, msg):
+        if msg is None:
+            return
         if msg['type'] == 'send':
             if self.check_send_correctness(msg):
                 self.hashcommit = msg['hashcommit']
@@ -163,9 +165,11 @@ class VssRecipient:
             witnessesvalid = witnessesvalid and \
                 self.pc.verify_eval(sendmsg['commitments'][i], self.nodeid, f(sendmsg['poly'],i), f(sendmsg['polyhat'],i), sendmsg['witnesses'][i])
         #veryify correctness of hash polynomial commitment
-        self.hashpoly = []
-        for c in sendmsg['commitments']:
-            self.hashpoly.append(hexstring_to_ZR(hashlib.sha256(group.serialize(c)).hexdigest()))
+        #hashpoly must be generated the same way as in VssDealer
+        hashpolypoints = []
+        for i in range(len(sendmsg['commitments'])):
+            hashpolypoints.append([ONE * i, hexstring_to_ZR(hashlib.sha256(group.serialize(sendmsg['commitments'][i])).hexdigest())])
+        self.hashpoly = interpolate_poly(hashpolypoints)
         hashpolycommitmentvalid = self.pc2.verify_poly(sendmsg['hashcommit'], self.hashpoly, sendmsg['hashpolyhat'])
         #verify correctness of regular polynomial
         polyvalid = self.pc.verify_poly(sendmsg['commitments'][self.nodeid], sendmsg['poly'], sendmsg['polyhat'])
@@ -173,7 +177,7 @@ class VssRecipient:
 
     def check_ready_correctness(self, readymsg):
         return self.pc.verify_eval(readymsg['commitment'], self.nodeid, readymsg['polypoint'], readymsg['polyhatpoint'], readymsg['polywitness']) and \
-            self.pc2.verify_eval(readymsg['hashcommit'], readymsg['id'], f(self.hashpoly, readymsg['id']), \
+            self.pc2.verify_eval(readymsg['hashcommit'], readymsg['id'], hexstring_to_ZR(hashlib.sha256(group.serialize(readymsg['commitment'])).hexdigest()), \
             readymsg['hashpolyhatpoint'], readymsg['hashpolywitness'])
 
     def check_recshare_correctness(self, recsharemsg):

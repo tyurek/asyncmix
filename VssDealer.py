@@ -58,10 +58,12 @@ class VssDealer:
                 witnesses.append(self.pc.create_witness(self.projas[i], self.projahats[i], j))
             self.witnessvectors.append(witnesses)
         #Create the polynomial of hashes of commitments and commit to it
-        for c in self.commitments:
+        hashpolypoints = []
+        for i in range(len(self.commitments)):
             #not sure if there's an agreed upon way to hash a pairing element to something outside the group
             #so I SHA256 hash the bitstring representation of the element
-            self.hashpoly.append(hexstring_to_ZR(hashlib.sha256(group.serialize(c)).hexdigest()))
+            hashpolypoints.append([ONE * i, hexstring_to_ZR(hashlib.sha256(group.serialize(self.commitments[i])).hexdigest())])
+        self.hashpoly = interpolate_poly(hashpolypoints)
         self.hashpolyhat = list(group.random(ZR, count=k+1, seed=seed))
         self.hashcommit = self.pc2.commit(self.hashpoly, self.hashpolyhat)
 

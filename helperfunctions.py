@@ -17,6 +17,7 @@ ONE = group.random(ZR, seed=60)*0+1
 
 #unknown results will occur if denominator does not perfectly divide numerator
 #an input of [a,b,c] corresponds to cx^2 + bx + a
+
 def polynomial_divide(numerator, denominator):
     temp = numerator
     factors = []
@@ -28,6 +29,40 @@ def polynomial_divide(numerator, denominator):
             temp[i+diff] = temp[i+diff] - (factor * denominator[i])
         temp = temp[:len(temp)-1]
     return factors
+
+def polynomial_multiply_constant(poly1, c):
+    #myzero will be appropriate whether we are in ZR or G
+    myzero = poly1[0] - poly1[0]
+    product = [myzero] * len(poly1)
+    for i in range(len(product)):
+        product[i] = product[i] + poly1[i] * c
+    return product
+
+def polynomial_multiply(poly1, poly2):
+    myzero = poly1[0] - poly1[0]
+    product = [myzero] * (len(poly1) + len(poly2) -1)
+    for i in range(len(poly1)):
+        temp = polynomial_multiply_constant(poly2, poly1[i])
+        while i > 0:
+            temp.insert(0,myzero)
+            i -= 1
+        product = polynomial_add(product, temp)
+    return product
+
+def polynomial_add(poly1, poly2):
+    myzero = poly2[0] - poly2[0]
+    if len(poly1) >= len(poly2):
+        bigger = poly1
+        smaller = poly2
+    else:
+        bigger = poly2
+        smaller = poly1
+    polysum = [myzero] * len(bigger)
+    for i in range(len(bigger)):
+        polysum[i] = polysum[i] + bigger[i]
+        if i < len(smaller):
+            polysum[i] = polysum[i] + smaller[i]
+    return polysum
 
 # Polynomial projection (evaluate the bivariate polynomial at a given y to get a univariate polynomial)
 def projf(poly, y):
@@ -94,6 +129,21 @@ def lagrange_at_x(S,j,x):
     num = reduce(mul, [x - jj  for jj in S if jj != j], ONE)
     den = reduce(mul, [j - jj  for jj in S if jj != j], ONE)
     return num / den
+
+def interpolate_poly(coords):
+    myone = coords[0][1] / coords[0][1]
+    myzero = coords[0][1] - coords[0][1]
+    poly = [myzero] * len(coords)
+    for i in range(len(coords)):
+        temp = [myone]
+        for j in range(len(coords)):
+            if i == j:
+                temp  = polynomial_multiply(temp, [coords[j][1]])
+                continue
+            temp = polynomial_multiply(temp, [myzero -(coords[j][0] * myone), myone])
+            temp = polynomial_divide(temp, [coords[i][0] *myone -coords[j][0] *myone])
+        poly = polynomial_add(poly, temp)
+    return poly
 
 #this is necessary because ints have a limited size
 def hexstring_to_ZR(string):
