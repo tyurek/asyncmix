@@ -175,10 +175,8 @@ def intstring_to_ZR(string):
 #Check that a subset of t+1 points will correctly interpolate to the polynomial which contains all points
 def check_commitment_integrity(commitments, t):
     points = []
-    i = 0
-    for commitment in commitments:
-        points.append([i, commitment])
-        i = i + 1
+    for i in commitments:
+        points.append([i, commitments[i]])
     out = True
     for i in range(t+1,len(commitments)):
         out = out and (interpolate_at_x(points[:t+1], points[i][0]) == (points[i ][1]))

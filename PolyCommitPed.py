@@ -70,6 +70,7 @@ class PolyCommitPed:
         #witness should be equivalent to (self.g **(f(psi, self.alpha))) * (self.h **(f(psihat, self.alpha)))
         return witness
 
+
     def verify_eval(self, c, i, polyeval, secretpolyeval, witness):
         lhs =  group.pair_prod(c, self.g)
         rhs = group.pair_prod(witness, self.pk[1] / (self.g ** i)) * group.pair_prod(self.g**polyeval * self.h**secretpolyeval, self.g)

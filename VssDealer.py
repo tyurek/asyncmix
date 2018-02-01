@@ -4,6 +4,7 @@ import random
 import hashlib
 from PolyCommitPed import *
 from helperfunctions import *
+import os
 
 group = PairingGroup('SS512')
 #group = PairingGroup('MNT159')
@@ -20,7 +21,7 @@ seed=None
 
 #Class representing a the dealer in the scheme. t is the threshold and k is the number of participants
 class VssDealer:
-    def __init__ (self, k, t, secret, pk, pk2, group=group, seed=None):
+    def __init__ (self, k, t, secret, pk, pk2, participantids, group=group, seed=None):
         # Random polynomial coefficients constructed in the form
         #[c       x        x^2        ...  x^t
         # y       xy       x^2y       ...  x^t*y
@@ -28,15 +29,16 @@ class VssDealer:
         # ...     ...      ...        ...  ...
         # y^t     x*y^t    x^2*y^t    ...  x^t*y^t]
         # This is structured so that t+1 points are needed to reconstruct the polynomial
-        self.commitments = []
-        self.witnessvectors = []
-        self.projas = []
-        self.projahats = []
+        self.commitments = {}
+        self.witnessvectors = {}
+        self.projas = {}
+        self.projahats = {}
         self.hashpoly = []
         self.t = t
         self.k = k
         self.a = [list(group.random(ZR, count=t+1, seed=seed)) for i in range(t+1)]
         self.ahat = [list(group.random(ZR, count=t+1, seed=seed)) for i in range(t+1)]
+        participantids.append(0)
         #make the polynomials symmetric
         for i in range(t+1):
             for j in range(i):
@@ -45,27 +47,35 @@ class VssDealer:
         self.a[0][0] = secret
         self.pc = PolyCommitPed(t=t, pk=pk, group=group)
         self.pc2 = PolyCommitPed(t=k, pk=pk2, group=group)
-        for j in range(k+1):
+        time2 = os.times()
+        for j in participantids:
             #Create lists of polynomial projections at different points for ease of use
-            self.projas.append(projf(self.a, j))
-            self.projahats.append(projf(self.ahat, j))
+            self.projas[j] = projf(self.a, j)
+            self.projahats[j] = projf(self.ahat, j)
             #Create commitments for each of these projections
-            self.commitments.append(self.pc.commit(self.projas[j], self.projahats[j]))
+            self.commitments[j] = self.pc.commit(self.projas[j], self.projahats[j])
+        print "Commitments and Projections Elapsed Time: " + str(os.times()[4] - time2[4])
+        time2 = os.times()
         #A different loop is needed for witnesses so that all projections are already calculated
-        for j in range(k+1):
-            witnesses = []
-            for i in range(k+1):
-                witnesses.append(self.pc.create_witness(self.projas[i], self.projahats[i], j))
-            self.witnessvectors.append(witnesses)
+        for j in participantids:
+            witnesses = {}
+            for i in participantids:
+                witnesses[i] = self.pc.create_witness(self.projas[i], self.projahats[i], j)
+            self.witnessvectors[j] = witnesses
+        print "Witnesses Elapsed Time: " + str(os.times()[4] - time2[4])
+        time2 = os.times()
         #Create the polynomial of hashes of commitments and commit to it
         hashpolypoints = []
-        for i in range(len(self.commitments)):
+        print len(self.commitments)
+        for i in participantids:
             #not sure if there's an agreed upon way to hash a pairing element to something outside the group
             #so I SHA256 hash the bitstring representation of the element
             hashpolypoints.append([ONE * i, hexstring_to_ZR(hashlib.sha256(group.serialize(self.commitments[i])).hexdigest())])
         self.hashpoly = interpolate_poly(hashpolypoints)
         self.hashpolyhat = list(group.random(ZR, count=k+1, seed=seed))
         self.hashcommit = self.pc2.commit(self.hashpoly, self.hashpolyhat)
+        print "The Rest Elapsed Time: " + str(os.times()[4] - time2[4])
+        time2 = os.times()
 
     #send a "send" message to party member j
     def send_sendmsg(self, j):
