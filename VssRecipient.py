@@ -160,7 +160,10 @@ class VssRecipient:
                 for key, msg in self.recsharemessages.iteritems():
                     if msg is not None:
                         secretcoords.append([msg['id'], msg['polypoint']])
-                print "Node " + str(self.nodeid) + ": The secret is " + str(interpolate_at_x(secretcoords,0))
+                secrets = []
+                for i in range(self.t + 1):
+                    secrets.append(interpolate_at_x(secretcoords,i))
+                print "Node " + str(self.nodeid) + ": The secret is " + str(secrets)
 
     def check_send_correctness(self, sendmsg):
         #verify commitments can be interpolated from each other

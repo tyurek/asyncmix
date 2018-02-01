@@ -39,12 +39,21 @@ class VssDealer:
         self.a = [list(group.random(ZR, count=t+1, seed=seed)) for i in range(t+1)]
         self.ahat = [list(group.random(ZR, count=t+1, seed=seed)) for i in range(t+1)]
         participantids.append(0)
+        if type(secret) is list:
+            secretpoints = []
+            for i in range(t+1):
+                if i < len(secret):
+                    secretpoints.append([i,secret[i]*ONE])
+                else:
+                    secretpoints.append([i,ZERO])
+            self.a[0] = interpolate_poly(secretpoints)
+        else:
+            self.a[0][0] = secret
         #make the polynomials symmetric
         for i in range(t+1):
             for j in range(i):
                 self.a[i][j] = self.a[j][i]
                 self.ahat[i][j] = self.ahat[j][i]
-        self.a[0][0] = secret
         self.pc = PolyCommitPed(t=t, pk=pk, group=group)
         self.pc2 = PolyCommitPed(t=k, pk=pk2, group=group)
         time2 = os.times()
@@ -66,7 +75,6 @@ class VssDealer:
         time2 = os.times()
         #Create the polynomial of hashes of commitments and commit to it
         hashpolypoints = []
-        print len(self.commitments)
         for i in participantids:
             #not sure if there's an agreed upon way to hash a pairing element to something outside the group
             #so I SHA256 hash the bitstring representation of the element
