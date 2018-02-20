@@ -2,19 +2,6 @@ from charm.toolbox.pairinggroup import PairingGroup,ZR,G1,G2,GT,pair
 from base64 import encodestring, decodestring
 import random
 
-
-group = PairingGroup('SS512')
-#group = PairingGroup('MNT159')
-#group = PairingGroup('MNT224')
-
-g1 = group.hash('geng1', G1)
-g1.initPP()
-#g2 = g1
-g2 = group.hash('geng2', G2)
-g2.initPP()
-ZERO = group.random(ZR, seed=59)*0
-ONE = group.random(ZR, seed=60)*0+1
-
 #unknown results will occur if denominator does not perfectly divide numerator
 #an input of [a,b,c] corresponds to cx^2 + bx + a
 
@@ -67,6 +54,8 @@ def polynomial_add(poly1, poly2):
 # Polynomial projection (evaluate the bivariate polynomial at a given y to get a univariate polynomial)
 def projf(poly, y):
 #Note that ZERO ** 0 evaluates to 0 rather than 1, so this function requires some light tweaking to work.
+    ZERO = poly[0][0] * 0
+    ONE = poly[0][0] * 0 + 1
     y = ONE * y
     t = len(poly)
     out = [ZERO] * t
@@ -82,6 +71,8 @@ def projf(poly, y):
 def f(poly, x):
     if type(poly) is not list:
         return "UNDEFINED"
+    ZERO = poly[0] * 0
+    ONE = poly[0] * 0 + 1
     y = ZERO
     xx = ONE
     for coeff in poly:
@@ -90,7 +81,8 @@ def f(poly, x):
     return y
 
 #interpolates a list of cordinates of the form [x,y] and evaulates at given x
-def interpolate_at_x(coords, x, order=-1):
+def interpolate_at_x(coords, x, group, order=-1):
+    ONE = group.random(ZR)*0 + 1
     if order == -1:
         order = len(coords)
     xs = []
@@ -101,12 +93,13 @@ def interpolate_at_x(coords, x, order=-1):
     #The following line makes it so this code works for both members of G and ZR
     out = ONE * (coords[0][1] - coords[0][1])
     for i in range(order):
-        out = out + (lagrange_at_x(S,xs[i],x) * sortedcoords[i][1])
+        out = out + (lagrange_at_x(S,xs[i],x,group) * sortedcoords[i][1])
     return out
 
 #Turns out a separate interpolation function for commitments is unnecessary
 #but I'll leave it here in case it's useful later on
-def interpolate_commitment_at_x(coords, x, order = -1):
+def interpolate_commitment_at_x(coords, x, group, order = -1):
+    ONE = group.random(ZR)*0 + 1
     if order == -1:
         order = len(coords)
     xs = []
@@ -122,7 +115,8 @@ def interpolate_commitment_at_x(coords, x, order = -1):
             out = out * (sortedcoords[i][1] ** (lagrange_at_x(S,xs[i],x)))
     return out
 
-def lagrange_at_x(S,j,x):
+def lagrange_at_x(S,j,x,group):
+    ONE = group.random(ZR)*0 + 1
     S = sorted(S)
     assert j in S
     mul = lambda a,b: a*b
@@ -146,7 +140,9 @@ def interpolate_poly(coords):
     return poly
 
 #this is necessary because ints have a limited size
-def hexstring_to_ZR(string):
+def hexstring_to_ZR(string, group):
+    ZERO = group.random(ZR)*0
+    ONE = group.random(ZR)*0 + 1
     i = len(string) - 1
     out = ZERO
     while i >= 0:
@@ -159,8 +155,10 @@ def hexstring_to_ZR(string):
         i = i - 1
     return out
 
-def intstring_to_ZR(string):
+def intstring_to_ZR(string, group):
     i = len(string) - 1
+    ZERO = group.random(ZR)*0
+    ONE = group.random(ZR)*0 + 1
     out = ZERO
     while i >= 0:
         if i > 0:
@@ -173,12 +171,12 @@ def intstring_to_ZR(string):
     return out
 
 #Check that a subset of t+1 points will correctly interpolate to the polynomial which contains all points
-def check_commitment_integrity(commitments, t):
+def check_commitment_integrity(commitments, t, group):
     points = []
     for i in commitments:
         points.append([i, commitments[i]])
     out = True
     for i in range(t+1,len(commitments)):
-        out = out and (interpolate_at_x(points[:t+1], points[i][0]) == (points[i ][1]))
+        out = out and (interpolate_at_x(points[:t+1], points[i][0], group) == (points[i ][1]))
     return out
 

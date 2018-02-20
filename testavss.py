@@ -1,116 +1,116 @@
 from VssDealer import *
 from VssRecipient import *
+import os
+def main():
+    timetotal = os.times() 
+    time = os.times()
+    offset = 69
+    t = 4
+    k = 13
+    seed = None
+    symmetric = False
+    if not symmetric:
+        group = PairingGroup('MNT159')
+        alpha = group.random(ZR, seed=seed)
+        alpha2 = group.random(ZR, seed=seed)
+        pkg = group.random(G1, seed=seed)
+        pkghat = group.random(G2, seed=seed)
+        pkh = group.random(G1, seed=seed)
+        pk2g = group.random(G1, seed=seed)
+        pk2ghat = group.random(G2, seed=seed)
+        pk2h = group.random(G1, seed=seed)
+        pk = []
+        pk2 = []
+        for i in range(t+1):
+            pk.append(pkg**(alpha**i))
+        for i in range(2):
+            pk.append(pkghat**(alpha**i))
+        for i in range(t+1):
+            pk.append(pkh**(alpha**i))
+        for i in range(k+1):
+            pk2.append(pk2g**(alpha2**i))
+        for i in range(2):
+            pk2.append(pk2ghat**(alpha2**i))
+        for i in range(k+1):
+            pk2.append(pk2h**(alpha2**i))
+    else:
+        group = PairingGroup('SS512')
+        alpha = group.random(ZR, seed=seed)
+        alpha2 = group.random(ZR, seed=seed)
+        pkg = group.random(G1, seed=seed)
+        pkg2 = group.random(G1, seed=seed)
+        pkh = group.random(G1, seed=seed)
+        pkh2 = group.random(G1, seed=seed)
+        pk = []
+        pk2 = []
+        for i in range(t+1):
+            pk.append(pkg**(alpha**i))
+        for i in range(t+1):
+            pk.append(pkh**(alpha**i))
+        for i in range(k+1):
+            pk2.append(pkg2**(alpha2**i))
+        for i in range(k+1):
+            pk2.append(pkh2**(alpha2**i))
+    #Preprocessing to speed up exponentiation
+    for item in pk:
+        item.initPP()
+    for item in pk2:
+        item.initPP()
+    
+    participantids = []
+    for i in range(k):
+        participantids.append(i+1+offset)
 
-alpha = group.random(ZR, seed=seed)
-alpha2 = group.random(ZR, seed=seed)
-pkg = group.random(G1, seed=seed)
-pkg2 = group.random(G1, seed=seed)
-pkh = group.random(G1, seed=seed)
-pkh2 = group.random(G1, seed=seed)
-t = 3
-k = 5
-pk = []
-pk2 = []
-for i in range(t+1):
-    pk.append(pkg**(alpha**i))
-for i in range(t+1):
-    pk.append(pkh**(alpha**i))
-for i in range(k+1):
-    pk2.append(pkg2**(alpha2**i))
-for i in range(k+1):
-    pk2.append(pkh2**(alpha2**i))
+    print "Paramgen Elapsed Time: " + str(os.times()[4] - time[4])
+    time = os.times()
 
-#Initialize Players
-dealer = VssDealer(k=5, t=3, secret=42, pk=pk, pk2=pk2)
-p1 = VssRecipient(k=5, t=3, nodeid=1, pk=pk, pk2=pk2)
-p2 = VssRecipient(k=5, t=3, nodeid=2, pk=pk, pk2=pk2)
-p3 = VssRecipient(k=5, t=3, nodeid=3, pk=pk, pk2=pk2)
-p4 = VssRecipient(k=5, t=3, nodeid=4, pk=pk, pk2=pk2)
-p5 = VssRecipient(k=5, t=3, nodeid=5, pk=pk, pk2=pk2)
+    #Initialize Players
+    dealer = VssDealer(k=k, t=t, secret=[42,69,420,11111,1717], pk=pk, pk2=pk2, participantids=participantids, group=group)
+    print "Dealer Initialization Elapsed Time: " + str(os.times()[4] - time[4])
+    time = os.times()
 
-#Deal out send messages
-p1.receive_msg(dealer.send_sendmsg(1))
-p2.receive_msg(dealer.send_sendmsg(2))
-p3.receive_msg(dealer.send_sendmsg(3))
-p4.receive_msg(dealer.send_sendmsg(4))
-p5.receive_msg(dealer.send_sendmsg(5))
+    players = []
+    for i in range(k):
+        players.append(VssRecipient(k=k, t=t, nodeid=i+1+offset, pk=pk, pk2=pk2, group=group))
 
-#Players send out echo messages
-p1.receive_msg(p2.send_echomsg())
-p1.receive_msg(p3.send_echomsg())
-p1.receive_msg(p4.send_echomsg())
-p1.receive_msg(p5.send_echomsg())
+    print "Player Initialization Elapsed Time: " + str(os.times()[4] - time[4])
+    time = os.times()
 
-p2.receive_msg(p1.send_echomsg())
-p2.receive_msg(p3.send_echomsg())
-p2.receive_msg(p4.send_echomsg())
-p2.receive_msg(p5.send_echomsg())
+    #Deal out send messages
+    for i in range(k):
+        players[i].receive_msg(dealer.send_sendmsg(i+1+offset))
 
-p3.receive_msg(p1.send_echomsg())
-p3.receive_msg(p2.send_echomsg())
-p3.receive_msg(p4.send_echomsg())
-p3.receive_msg(p5.send_echomsg())
+    print "Dealing Elapsed Time: " + str(os.times()[4] - time[4])
+    time = os.times()
+    
+    #Players send out echo messages
+    for i in range(k):
+        for j in range(k):
+            if i == j:
+                continue
+            players[i].receive_msg(players[j].send_echomsg())
 
-p4.receive_msg(p1.send_echomsg())
-p4.receive_msg(p2.send_echomsg())
-p4.receive_msg(p3.send_echomsg())
-p4.receive_msg(p5.send_echomsg())
+    print "Echo Messages Elapsed Time: " + str(os.times()[4] - time[4])
+    time = os.times()
 
-p5.receive_msg(p1.send_echomsg())
-p5.receive_msg(p2.send_echomsg())
-p5.receive_msg(p3.send_echomsg())
-p5.receive_msg(p4.send_echomsg())
+    #Players send out ready messages
+    for i in range(k):
+        for j in range(k):
+            if i == j:
+                continue
+            players[i].receive_msg(players[j].send_readymsg(i+1+offset))
 
-#Players send out ready messages
-p1.receive_msg(p2.send_readymsg(1))
-p1.receive_msg(p3.send_readymsg(1))
-p1.receive_msg(p4.send_readymsg(1))
-p1.receive_msg(p5.send_readymsg(1))
+    print "Ready Messages Elapsed Time: " + str(os.times()[4] - time[4])
+    time = os.times()
 
-p2.receive_msg(p1.send_readymsg(2))
-p2.receive_msg(p3.send_readymsg(2))
-p2.receive_msg(p4.send_readymsg(2))
-p2.receive_msg(p5.send_readymsg(2))
+    #END SH PHASE
+    for i in range(k):
+        for j in range(k):
+            if i == j:
+                continue
+            players[i].receive_msg(players[j].send_recsharemsg())
 
-p3.receive_msg(p1.send_readymsg(3))
-p3.receive_msg(p2.send_readymsg(3))
-p3.receive_msg(p4.send_readymsg(3))
-p3.receive_msg(p5.send_readymsg(3))
-
-p4.receive_msg(p1.send_readymsg(4))
-p4.receive_msg(p2.send_readymsg(4))
-p4.receive_msg(p3.send_readymsg(4))
-p4.receive_msg(p5.send_readymsg(4))
-
-p5.receive_msg(p1.send_readymsg(5))
-p5.receive_msg(p2.send_readymsg(5))
-p5.receive_msg(p3.send_readymsg(5))
-p5.receive_msg(p4.send_readymsg(5))
-
-#END SH PHASE
-p1.receive_msg(p2.send_recsharemsg())
-p1.receive_msg(p3.send_recsharemsg())
-p1.receive_msg(p4.send_recsharemsg())
-p1.receive_msg(p5.send_recsharemsg())
-
-p2.receive_msg(p1.send_recsharemsg())
-p2.receive_msg(p3.send_recsharemsg())
-p2.receive_msg(p4.send_recsharemsg())
-p2.receive_msg(p5.send_recsharemsg())
-
-p3.receive_msg(p1.send_recsharemsg())
-p3.receive_msg(p2.send_recsharemsg())
-p3.receive_msg(p4.send_recsharemsg())
-p3.receive_msg(p5.send_recsharemsg())
-
-p4.receive_msg(p1.send_recsharemsg())
-p4.receive_msg(p2.send_recsharemsg())
-p4.receive_msg(p3.send_recsharemsg())
-p4.receive_msg(p5.send_recsharemsg())
-
-p5.receive_msg(p1.send_recsharemsg())
-p5.receive_msg(p2.send_recsharemsg())
-p5.receive_msg(p3.send_recsharemsg())
-p5.receive_msg(p4.send_recsharemsg())
-
-
+    print "REC SHARE Elapsed Time: " + str(os.times()[4] - time[4])
+    time = os.times()
+    print "TOTAL Elapsed Time: " + str(os.times()[4] - timetotal[4])
+main()

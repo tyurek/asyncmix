@@ -1,27 +1,16 @@
 from charm.toolbox.pairinggroup import PairingGroup,ZR,G1,G2,GT,pair
 from base64 import encodestring, decodestring
+import collections
 import random
 import hashlib
 from PolyCommitPed import *
 from helperfunctions import *
 import os
 
-group = PairingGroup('SS512')
-#group = PairingGroup('MNT159')
-#group = PairingGroup('MNT224')
-
-g1 = group.hash('geng1', G1)
-g1.initPP()
-#g2 = g1
-g2 = group.hash('geng2', G2)
-g2.initPP()
-ZERO = group.random(ZR, seed=59)*0
-ONE = group.random(ZR, seed=60)*0+1
-seed=None
 
 #Class representing a the dealer in the scheme. t is the threshold and k is the number of participants
 class VssDealer:
-    def __init__ (self, k, t, secret, pk, pk2, participantids, group=group, seed=None):
+    def __init__ (self, k, t, secret, pk, pk2, participantids, group=PairingGroup('SS512'), seed=None):
         # Random polynomial coefficients constructed in the form
         #[c       x        x^2        ...  x^t
         # y       xy       x^2y       ...  x^t*y
@@ -36,10 +25,14 @@ class VssDealer:
         self.hashpoly = []
         self.t = t
         self.k = k
+        self.group = group
         self.a = [list(group.random(ZR, count=t+1, seed=seed)) for i in range(t+1)]
         self.ahat = [list(group.random(ZR, count=t+1, seed=seed)) for i in range(t+1)]
         participantids.append(0)
-        if type(secret) is list:
+        ZERO = group.random(ZR, seed=59)*0
+        ONE = group.random(ZR, seed=60)*0+1
+        #if type(secret) is list:
+        if isinstance(secret, collections.Iterable):
             secretpoints = []
             for i in range(t+1):
                 if i < len(secret):
@@ -78,7 +71,7 @@ class VssDealer:
         for i in participantids:
             #not sure if there's an agreed upon way to hash a pairing element to something outside the group
             #so I SHA256 hash the bitstring representation of the element
-            hashpolypoints.append([ONE * i, hexstring_to_ZR(hashlib.sha256(group.serialize(self.commitments[i])).hexdigest())])
+            hashpolypoints.append([ONE * i, hexstring_to_ZR(hashlib.sha256(group.serialize(self.commitments[i])).hexdigest(), group)])
         self.hashpoly = interpolate_poly(hashpolypoints)
         self.hashpolyhat = list(group.random(ZR, count=k+1, seed=seed))
         self.hashcommit = self.pc2.commit(self.hashpoly, self.hashpolyhat)
