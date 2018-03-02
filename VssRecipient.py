@@ -67,13 +67,13 @@ class VssRecipient:
             #if self.echoedhashcommits[msg['id']] == None and not self.ready:
             if msg['id'] not in self.echoedhashcommits and not self.ready:
             #We take a hash of these commitments for the sole purpose of being able to compare them with python tools
-                self.echoedhashcommits[msg['id']] = hashlib.sha256(self.group.serialize(msg['hashcommit'])).hexdigest()
+                self.echoedhashcommits[msg['id']] = hashlib.sha256(str(msg['hashcommit'])).hexdigest()
                 #for key, value in collections.Counter(self.echoedhashcommits).iteritems():
                 for key, value in collections.Counter(self.echoedhashcommits.values()).iteritems():
                     if value >= (self.k - self.t) and key != None:
                         self.ready = True
                         #We're sharing the hash polynomial commitment we received iff it's the same one that k - t others gave us
-                        self.share = key == hashlib.sha256(self.group.serialize(self.hashcommit)).hexdigest()
+                        self.share = key == hashlib.sha256(str(self.hashcommit)).hexdigest()
                         self.hashcommit = msg['hashcommit']
         if msg['type'] == 'ready':
             #Ignore invalid messages and messages where we have already received a valid message from that sender
@@ -85,12 +85,12 @@ class VssRecipient:
                 #This is very similar to how we receive echo messages. Basically a fallback if we don't get enough echos
                 #if self.readyhashcommits[msg['id']] == None and self.nosharehashcommits[msg['id']] == None:
                 if msg['id'] not in self.readyhashcommits and self.nosharehashcommits[msg['id']] == None:
-                    self.readyhashcommits[msg['id']] = hashlib.sha256(self.group.serialize(msg['hashcommit'])).hexdigest()
+                    self.readyhashcommits[msg['id']] = hashlib.sha256(str(msg['hashcommit'])).hexdigest()
                     for key, value in collections.Counter(self.readyhashcommits.values()).iteritems():
                         if value >= (self.t + 1) and key != None:
                             self.ready = True
                             #We're sharing whatever hash polynomial commitment we received t + 1 of
-                            self.share = key == hashlib.sha256(self.group.serialize(self.hashcommit)).hexdigest()
+                            self.share = key == hashlib.sha256(str(self.hashcommit)).hexdigest()
                             self.hashcommit = msg['hashcommit']
             if not self.ready:
                 return
@@ -168,7 +168,7 @@ class VssRecipient:
         hashpolypoints = []
         ONE = self.group.random(ZR, seed=60)*0+1
         for i in sendmsg['commitments']:
-            hashpolypoints.append([ONE * i, hexstring_to_ZR(hashlib.sha256(self.group.serialize(sendmsg['commitments'][i])).hexdigest(), self.group)])
+            hashpolypoints.append([ONE * i, hexstring_to_ZR(hashlib.sha256(str(sendmsg['commitments'][i])).hexdigest(), self.group)])
         self.hashpoly = interpolate_poly(hashpolypoints)
         hashpolycommitmentvalid = self.pc2.verify_poly(sendmsg['hashcommit'], self.hashpoly, sendmsg['hashpolyhat'])
         #verify correctness of regular polynomial
@@ -177,7 +177,7 @@ class VssRecipient:
 
     def check_ready_correctness(self, readymsg):
         return self.pc.verify_eval(readymsg['commitment'], self.nodeid, readymsg['polypoint'], readymsg['polyhatpoint'], readymsg['polywitness']) and \
-            self.pc2.verify_eval(readymsg['hashcommit'], readymsg['id'], hexstring_to_ZR(hashlib.sha256(self.group.serialize(readymsg['commitment'])).hexdigest(), self.group), \
+            self.pc2.verify_eval(readymsg['hashcommit'], readymsg['id'], hexstring_to_ZR(hashlib.sha256(str(readymsg['commitment'])).hexdigest(), self.group), \
             readymsg['hashpolyhatpoint'], readymsg['hashpolywitness'])
 
     def check_recshare_correctness(self, recsharemsg):

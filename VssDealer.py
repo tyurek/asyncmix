@@ -71,7 +71,7 @@ class VssDealer:
         for i in participantids:
             #not sure if there's an agreed upon way to hash a pairing element to something outside the group
             #so I SHA256 hash the bitstring representation of the element
-            hashpolypoints.append([ONE * i, hexstring_to_ZR(hashlib.sha256(group.serialize(self.commitments[i])).hexdigest(), group)])
+            hashpolypoints.append([ONE * i, hexstring_to_ZR(hashlib.sha256(str(self.commitments[i])).hexdigest(), group)])
         self.hashpoly = interpolate_poly(hashpolypoints)
         self.hashpolyhat = list(group.random(ZR, count=k+1, seed=seed))
         self.hashcommit = self.pc2.commit(self.hashpoly, self.hashpolyhat)
