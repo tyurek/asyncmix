@@ -9,14 +9,16 @@ from helperfunctions import *
 
 
 class PolyCommitPed:
-    def __init__ (self, t, pk, group=PairingGroup('SS512'), seed=None):
+    def __init__ (self, t, pk, group, symflag, seed=None):
         self.group = group
         self.pk = pk
         self.g = pk[0]
-        if str(self.group.groupType()) == 'SS512' or str(self.group.groupType()) == 'SS1024':
+        #if str(self.group.groupType()) == 'SS512' or str(self.group.groupType()) == 'SS1024' or str(self.group.groupType()) == 'SS1536':
+        if symflag:
             self.h = pk[t+1]
             self.symmetric = True
-        elif str(self.group.groupType()) == 'MNT159' or str(self.group.groupType()) == 'MNT224':
+        #elif str(self.group.groupType()) == 'MNT159' or str(self.group.groupType()) == 'MNT224' or str(self.group.groupType()) == 'BN256':
+        elif not symflag:
             self.h = pk[t+3]
             self.symmetric = False
         else:

@@ -1,6 +1,7 @@
 from VssDealer import *
 from VssRecipient import *
 import os
+
 def main():
     timetotal = os.times() 
     time = os.times()
@@ -8,9 +9,10 @@ def main():
     t = 4
     k = 13
     seed = None
-    symmetric = False
+    symmetric = True
     if not symmetric:
-        group = PairingGroup('MNT159')
+        group = PairingGroup('BN256')
+        #group = PairingGroup('MNT160')
         alpha = group.random(ZR, seed=seed)
         alpha2 = group.random(ZR, seed=seed)
         pkg = group.random(G1, seed=seed)
@@ -34,7 +36,8 @@ def main():
         for i in range(k+1):
             pk2.append(pk2h**(alpha2**i))
     else:
-        group = PairingGroup('SS512')
+        group = PairingGroup('SS1536')
+        #group = PairingGroup('SS512')
         alpha = group.random(ZR, seed=seed)
         alpha2 = group.random(ZR, seed=seed)
         pkg = group.random(G1, seed=seed)
@@ -65,13 +68,13 @@ def main():
     time = os.times()
 
     #Initialize Players
-    dealer = VssDealer(k=k, t=t, secret=[42,69,420,11111,1717], pk=pk, pk2=pk2, participantids=participantids, group=group)
+    dealer = VssDealer(k=k, t=t, secret=[42,69,420,11111,1717], pk=pk, pk2=pk2, participantids=participantids, group=group, symflag=symmetric)
     print "Dealer Initialization Elapsed Time: " + str(os.times()[4] - time[4])
     time = os.times()
 
     players = []
     for i in range(k):
-        players.append(VssRecipient(k=k, t=t, nodeid=i+1+offset, pk=pk, pk2=pk2, group=group))
+        players.append(VssRecipient(k=k, t=t, nodeid=i+1+offset, pk=pk, pk2=pk2, group=group, symflag=symmetric))
 
     print "Player Initialization Elapsed Time: " + str(os.times()[4] - time[4])
     time = os.times()
@@ -113,4 +116,7 @@ def main():
     print "REC SHARE Elapsed Time: " + str(os.times()[4] - time[4])
     time = os.times()
     print "TOTAL Elapsed Time: " + str(os.times()[4] - timetotal[4])
-main()
+
+if __name__ == "__main__":
+    debug = True
+    main()

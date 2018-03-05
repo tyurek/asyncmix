@@ -10,7 +10,7 @@ import os
 
 #Class representing a the dealer in the scheme. t is the threshold and k is the number of participants
 class VssDealer:
-    def __init__ (self, k, t, secret, pk, pk2, participantids, group=PairingGroup('SS512'), seed=None):
+    def __init__ (self, k, t, secret, pk, pk2, participantids, group, symflag, seed=None):
         # Random polynomial coefficients constructed in the form
         #[c       x        x^2        ...  x^t
         # y       xy       x^2y       ...  x^t*y
@@ -47,8 +47,8 @@ class VssDealer:
             for j in range(i):
                 self.a[i][j] = self.a[j][i]
                 self.ahat[i][j] = self.ahat[j][i]
-        self.pc = PolyCommitPed(t=t, pk=pk, group=group)
-        self.pc2 = PolyCommitPed(t=k, pk=pk2, group=group)
+        self.pc = PolyCommitPed(t=t, pk=pk, group=group, symflag=symflag)
+        self.pc2 = PolyCommitPed(t=k, pk=pk2, group=group, symflag=symflag)
         time2 = os.times()
         for j in participantids:
             #Create lists of polynomial projections at different points for ease of use

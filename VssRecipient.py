@@ -10,7 +10,7 @@ from helperfunctions import *
 #Class representing a participant in the scheme. t is the threshold and k is the number of participants
 class VssRecipient:
     #to avoid indexing hell, when scaling this to multiple dimensions, just make new objects
-    def __init__ (self, k, t, nodeid, pk, pk2, group=PairingGroup('SS512'), seed=None):
+    def __init__ (self, k, t, nodeid, pk, pk2, group, symflag, seed=None):
         self.k = k
         self.t = t
         self.nodeid = nodeid
@@ -31,8 +31,8 @@ class VssRecipient:
         self.polyhat = None
         self.hashpoly = None
         self.hashpolyhat = None
-        self.pc = PolyCommitPed(t=t, pk=pk, group=group)
-        self.pc2 = PolyCommitPed(t=k, pk=pk2, group=group)
+        self.pc = PolyCommitPed(t=t, pk=pk, group=group, symflag=symflag)
+        self.pc2 = PolyCommitPed(t=k, pk=pk2, group=group, symflag=symflag)
         self.interpolatedpolyatzero = None
         self.interpolatedpolyhatatzero = None
         self.readymessages = {}
