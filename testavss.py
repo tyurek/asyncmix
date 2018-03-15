@@ -1,18 +1,52 @@
 from VssDealer import *
 from VssRecipient import *
 import os
+import gevent
+from gevent import Greenlet
+from gevent.queue import Queue
+
+def simple_router(participantids, maxdelay=0.01, seed=None):
+    """Builds a set of connected channels, with random delay
+    @return (receives, sends)
+    """
+    rnd = random.Random(seed)
+    #if seed is not None: print 'ROUTER SEED: %f' % (seed,)
+    
+    queues = {}
+    for _ in participantids:
+        queues[_] = Queue()
+    
+    def makeSend(i):
+        def _send(j, o):
+            delay = rnd.random() * maxdelay
+            #print 'SEND %8s [%2d -> %2d] %.2f' % (o[0], i, j, delay)
+            gevent.spawn_later(delay, queues[j].put, (i,o))
+            #queues[j].put((i, o))
+        return _send
+    
+    def makeRecv(j):
+        def _recv():
+            (i,o) = queues[j].get()
+            #print 'RECV %8s [%2d -> %2d]' % (o[0], i, j)
+            return (i,o)
+        return _recv
+    
+    sends = {}
+    receives = {}
+    for i in participantids:
+        sends[i] = makeSend(i)
+        receives[i] = makeRecv(i)    
+    return (sends, receives)
 
 def main():
-    timetotal = os.times() 
-    time = os.times()
     offset = 69
     t = 4
-    k = 13
+    n = 13
     seed = None
-    symmetric = True
+    symmetric = False
     if not symmetric:
-        group = PairingGroup('BN256')
-        #group = PairingGroup('MNT160')
+        #group = PairingGroup('BN256')
+        group = PairingGroup('MNT159')
         alpha = group.random(ZR, seed=seed)
         alpha2 = group.random(ZR, seed=seed)
         pkg = group.random(G1, seed=seed)
@@ -29,15 +63,15 @@ def main():
             pk.append(pkghat**(alpha**i))
         for i in range(t+1):
             pk.append(pkh**(alpha**i))
-        for i in range(k+1):
+        for i in range(n+1):
             pk2.append(pk2g**(alpha2**i))
         for i in range(2):
             pk2.append(pk2ghat**(alpha2**i))
-        for i in range(k+1):
+        for i in range(n+1):
             pk2.append(pk2h**(alpha2**i))
     else:
-        group = PairingGroup('SS1536')
-        #group = PairingGroup('SS512')
+        #group = PairingGroup('SS1536')
+        group = PairingGroup('SS512')
         alpha = group.random(ZR, seed=seed)
         alpha2 = group.random(ZR, seed=seed)
         pkg = group.random(G1, seed=seed)
@@ -50,9 +84,9 @@ def main():
             pk.append(pkg**(alpha**i))
         for i in range(t+1):
             pk.append(pkh**(alpha**i))
-        for i in range(k+1):
+        for i in range(n+1):
             pk2.append(pkg2**(alpha2**i))
-        for i in range(k+1):
+        for i in range(n+1):
             pk2.append(pkh2**(alpha2**i))
     #Preprocessing to speed up exponentiation
     for item in pk:
@@ -61,61 +95,24 @@ def main():
         item.initPP()
     
     participantids = []
-    for i in range(k):
+    for i in range(n):
         participantids.append(i+1+offset)
-
-    print "Paramgen Elapsed Time: " + str(os.times()[4] - time[4])
-    time = os.times()
+    dealerid = 4242
+    sends, recvs = simple_router(participantids + [dealerid], seed=seed)
+    threads = []
 
     #Initialize Players
-    dealer = VssDealer(k=k, t=t, secret=[42,69,420,11111,1717], pk=pk, pk2=pk2, participantids=participantids, group=group, symflag=symmetric)
-    print "Dealer Initialization Elapsed Time: " + str(os.times()[4] - time[4])
-    time = os.times()
+    thread = Greenlet(VssDealer, k=n, t=t,  secret=[42,69,420,11111,1717], pk=pk, pk2=pk2, participantids=participantids, group=group, symflag=symmetric, send_function=sends[dealerid])
+    thread.start()
+    threads.append(thread)
 
-    players = []
-    for i in range(k):
-        players.append(VssRecipient(k=k, t=t, nodeid=i+1+offset, pk=pk, pk2=pk2, group=group, symflag=symmetric))
+    for i in range(n):
+        thread = Greenlet(VssRecipient, k=n, t=t, nodeid=i+1+offset, pk=pk, pk2=pk2, participantids=participantids, group=group, symflag=symmetric, send_function=sends[i+1+offset], recv_function=recvs[i+1+offset])
+        thread.start()
+        threads.append(thread)
 
-    print "Player Initialization Elapsed Time: " + str(os.times()[4] - time[4])
-    time = os.times()
+    gevent.joinall(threads)
 
-    #Deal out send messages
-    for i in range(k):
-        players[i].receive_msg(dealer.send_sendmsg(i+1+offset))
-
-    print "Dealing Elapsed Time: " + str(os.times()[4] - time[4])
-    time = os.times()
-    
-    #Players send out echo messages
-    for i in range(k):
-        for j in range(k):
-            if i == j:
-                continue
-            players[i].receive_msg(players[j].send_echomsg())
-
-    print "Echo Messages Elapsed Time: " + str(os.times()[4] - time[4])
-    time = os.times()
-
-    #Players send out ready messages
-    for i in range(k):
-        for j in range(k):
-            if i == j:
-                continue
-            players[i].receive_msg(players[j].send_readymsg(i+1+offset))
-
-    print "Ready Messages Elapsed Time: " + str(os.times()[4] - time[4])
-    time = os.times()
-
-    #END SH PHASE
-    for i in range(k):
-        for j in range(k):
-            if i == j:
-                continue
-            players[i].receive_msg(players[j].send_recsharemsg())
-
-    print "REC SHARE Elapsed Time: " + str(os.times()[4] - time[4])
-    time = os.times()
-    print "TOTAL Elapsed Time: " + str(os.times()[4] - timetotal[4])
 
 if __name__ == "__main__":
     debug = True

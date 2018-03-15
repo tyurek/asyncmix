@@ -1,4 +1,5 @@
 from charm.toolbox.pairinggroup import PairingGroup,ZR,G1,G2,GT,pair
+from charm.core.engine.util import objectToBytes, bytesToObject
 from base64 import encodestring, decodestring
 import collections
 import random
@@ -6,11 +7,11 @@ import hashlib
 from PolyCommitPed import *
 from helperfunctions import *
 import os
-
+import json
 
 #Class representing a the dealer in the scheme. t is the threshold and k is the number of participants
 class VssDealer:
-    def __init__ (self, k, t, secret, pk, pk2, participantids, group, symflag, seed=None):
+    def __init__ (self, k, t, secret, pk, pk2, participantids, group, symflag, send_function, vssinstance=1, seed=None):
         # Random polynomial coefficients constructed in the form
         #[c       x        x^2        ...  x^t
         # y       xy       x^2y       ...  x^t*y
@@ -26,9 +27,10 @@ class VssDealer:
         self.t = t
         self.k = k
         self.group = group
+        self.vssinstance = vssinstance
         self.a = [list(group.random(ZR, count=t+1, seed=seed)) for i in range(t+1)]
         self.ahat = [list(group.random(ZR, count=t+1, seed=seed)) for i in range(t+1)]
-        participantids.append(0)
+        self.participantids = participantids
         ZERO = group.random(ZR, seed=59)*0
         ONE = group.random(ZR, seed=60)*0+1
         #if type(secret) is list:
@@ -50,7 +52,7 @@ class VssDealer:
         self.pc = PolyCommitPed(t=t, pk=pk, group=group, symflag=symflag)
         self.pc2 = PolyCommitPed(t=k, pk=pk2, group=group, symflag=symflag)
         time2 = os.times()
-        for j in participantids:
+        for j in participantids + [0]:
             #Create lists of polynomial projections at different points for ease of use
             self.projas[j] = projf(self.a, j)
             self.projahats[j] = projf(self.ahat, j)
@@ -68,7 +70,7 @@ class VssDealer:
         time2 = os.times()
         #Create the polynomial of hashes of commitments and commit to it
         hashpolypoints = []
-        for i in participantids:
+        for i in participantids + [0]:
             #not sure if there's an agreed upon way to hash a pairing element to something outside the group
             #so I SHA256 hash the bitstring representation of the element
             hashpolypoints.append([ONE * i, hexstring_to_ZR(hashlib.sha256(str(self.commitments[i])).hexdigest(), group)])
@@ -77,23 +79,30 @@ class VssDealer:
         self.hashcommit = self.pc2.commit(self.hashpoly, self.hashpolyhat)
         print "The Rest Elapsed Time: " + str(os.times()[4] - time2[4])
         time2 = os.times()
+        for j in participantids:
+            send_function(j, self.send_sendmsg(j))
 
     #send a "send" message to party member j
     def send_sendmsg(self, j):
         sendmsg = {}
+        sendmsg['instance'] = self.vssinstance
         sendmsg['type'] = 'send'
         #One commitment to the polynomial of hashes of commitments
-        sendmsg['hashcommit'] = self.hashcommit
+        sendmsg['hashcommit'] = objectToBytes(self.hashcommit, self.group)
         #List of commitments to casted polynomials, k+1 commitments in all (where k is the number of participants)
-        sendmsg['commitments'] = self.commitments
+        #print str(self.commitments)
+        #print bytesToObject(objectToBytes(self.commitments, self.group), self.group)
+        sendmsg['commitments'] = objectToBytes(self.commitments, self.group)
         #Polynomial (degree t) used to commit to the polynomial of hashes
-        sendmsg['hashpolyhat'] = self.hashpolyhat
+        sendmsg['hashpolyhat'] = objectToBytes(self.hashpolyhat, self.group)
         #List of witnesses to the evaluation of k+1 different points on the polynomial f(j,y) (which is also f(x,j))
-        sendmsg['witnesses'] = self.witnessvectors[j]
+        sendmsg['witnesses'] = objectToBytes(self.witnessvectors[j], self.group)
         #The polynomial (degree t) f(x,j)
-        sendmsg['poly'] = self.projas[j]
+        sendmsg['poly'] = objectToBytes(self.projas[j], self.group)
         #The polynomial (degree t) used to commit to f(x,j)
-        sendmsg['polyhat'] = self.projahats[j]
-        return sendmsg
+        sendmsg['polyhat'] = objectToBytes(self.projahats[j], self.group)
+        return json.dumps(sendmsg)
+    
+
 
 
