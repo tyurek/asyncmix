@@ -19,14 +19,16 @@ def polynomial_divide(numerator, denominator):
 
 def polynomial_multiply_constant(poly1, c):
     #myzero will be appropriate whether we are in ZR or G
-    myzero = poly1[0] - poly1[0]
-    product = [myzero] * len(poly1)
+    #myzero = poly1[0] - poly1[0]
+    product = [None] * len(poly1)
     for i in range(len(product)):
-        product[i] = product[i] + poly1[i] * c
+        product[i] = poly1[i] * c
     return product
 
 def polynomial_multiply(poly1, poly2):
+    #if group == None:
     myzero = poly1[0] - poly1[0]
+    #myzero = group.random(ZR)*0
     product = [myzero] * (len(poly1) + len(poly2) -1)
     for i in range(len(poly1)):
         temp = polynomial_multiply_constant(poly2, poly1[i])
@@ -37,16 +39,17 @@ def polynomial_multiply(poly1, poly2):
     return product
 
 def polynomial_add(poly1, poly2):
-    myzero = poly2[0] - poly2[0]
+    #if group == None:
+    #myzero = poly2[0] - poly2[0]
     if len(poly1) >= len(poly2):
         bigger = poly1
         smaller = poly2
     else:
         bigger = poly2
         smaller = poly1
-    polysum = [myzero] * len(bigger)
+    polysum = [None] * len(bigger)
     for i in range(len(bigger)):
-        polysum[i] = polysum[i] + bigger[i]
+        polysum[i] = bigger[i]
         if i < len(smaller):
             polysum[i] = polysum[i] + smaller[i]
     return polysum
@@ -68,11 +71,28 @@ def projf(poly, y):
     return out
 
 # Polynomial evaluation
-def f(poly, x):
+def f(poly, x, group=None):
     if type(poly) is not list:
         return "UNDEFINED"
-    ZERO = poly[0] * 0
-    ONE = poly[0] * 0 + 1
+    if group == None:
+        ZERO = poly[0] - poly[0]
+        ONE = poly[0]/poly[0]
+    else:
+        ONE = group.random(G1)
+        ONE = ONE/ONE
+        ZERO = ONE - ONE
+    y = ZERO
+    xx = ONE
+    for coeff in poly:
+        y += coeff * xx
+        xx *= x
+    return y
+
+def f_old(poly, x):
+    if type(poly) is not list:
+        return "UNDEFINED"
+    ZERO = poly[0] - poly[0]
+    ONE = poly[0]/poly[0]
     y = ZERO
     xx = ONE
     for coeff in poly:
@@ -91,7 +111,8 @@ def interpolate_at_x(coords, x, group, order=-1):
         xs.append(coord[0])
     S = set(xs[0:order])
     #The following line makes it so this code works for both members of G and ZR
-    out = ONE * (coords[0][1] - coords[0][1])
+    #out = ONE * (coords[0][1] - coords[0][1])
+    out = coords[0][1] - coords[0][1]
     for i in range(order):
         out = out + (lagrange_at_x(S,xs[i],x,group) * sortedcoords[i][1])
     return out
@@ -99,7 +120,7 @@ def interpolate_at_x(coords, x, group, order=-1):
 #Turns out a separate interpolation function for commitments is unnecessary
 #but I'll leave it here in case it's useful later on
 def interpolate_commitment_at_x(coords, x, group, order = -1):
-    ONE = group.random(ZR)*0 + 1
+    ONE = coords[0][1]/coords[0][1]
     if order == -1:
         order = len(coords)
     xs = []
@@ -109,10 +130,7 @@ def interpolate_commitment_at_x(coords, x, group, order = -1):
     S = set(xs[0:order])
     out = ONE
     for i in range(order):
-        if i == 0:
-            out = (sortedcoords[i][1] ** (lagrange_at_x(S,xs[i],x)))
-        else:
-            out = out * (sortedcoords[i][1] ** (lagrange_at_x(S,xs[i],x)))
+        out = out * (sortedcoords[i][1] ** (lagrange_at_x(S,xs[i],x, group)))
     return out
 
 def lagrange_at_x(S,j,x,group):
@@ -124,9 +142,29 @@ def lagrange_at_x(S,j,x,group):
     den = reduce(mul, [j - jj  for jj in S if jj != j], ONE)
     return num / den
 
-def interpolate_poly(coords):
+def interpolate_poly(coords, group=None):
     myone = coords[0][1] / coords[0][1]
     myzero = coords[0][1] - coords[0][1]
+    if group is not None:
+        myone = group.random(ZR)*0 + 1
+    #print "IT'SA ME " + str(myzero) + ", THE IDENTITY ELEMENT!"
+    #print "Before: " + str(coords[0][1]) + " After: " + str(myzero + coords[0][1])
+    poly = [myzero] * len(coords)
+    for i in range(len(coords)):
+        temp = [myone]
+        for j in range(len(coords)):
+            if i == j:
+                continue
+            temp = polynomial_multiply(temp, [ -1 * (coords[j][0] * myone), myone])
+            temp = polynomial_divide(temp, [myone * coords[i][0] - myone * coords[j][0]])
+        poly = polynomial_add(poly, polynomial_multiply_constant(temp,coords[i][1]))
+    return poly
+
+def interpolate_poly_old(coords):
+    myone = coords[0][1] / coords[0][1]
+    myzero = coords[0][1] - coords[0][1]
+    #print "IT'SA ME " + str(myzero) + ", THE IDENTITY ELEMENT!"
+    #print "Before: " + str(coords[0][1]) + " After: " + str(myzero + coords[0][1])
     poly = [myzero] * len(coords)
     for i in range(len(coords)):
         temp = [myone]

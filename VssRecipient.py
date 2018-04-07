@@ -11,7 +11,7 @@ from helperfunctions import *
 
 #Class representing a participant in the scheme. t is the threshold and k is the number of participants
 class VssRecipient:
-    def __init__ (self, k, t, nodeid, pk, pk2, participantids, group, symflag, send_function, recv_function, vssinstance=1, seed=None):
+    def __init__ (self, k, t, nodeid, pk, pk2, participantids, group, symflag, send_function, recv_function, sid=1, reconstruction=True, seed=None):
         self.k = k
         self.t = t
         self.nodeid = nodeid
@@ -19,7 +19,7 @@ class VssRecipient:
         self.pk2 = pk2
         self.participantids = participantids
         self.group = group
-        self.vssinstance = vssinstance
+        self.sid = sid
         self.seed = seed
         self.hashcommit = None
         self.commitments = None
@@ -35,19 +35,31 @@ class VssRecipient:
         self.polyhat = None
         self.hashpoly = None
         self.hashpolyhat = None
+        self.secret = None
         self.pc = PolyCommitPed(t=t, pk=pk, group=group, symflag=symflag)
         self.pc2 = PolyCommitPed(t=k, pk=pk2, group=group, symflag=symflag)
         self.interpolatedpolyatzero = None
         self.interpolatedpolyhatatzero = None
-        self.readymessages = {}
+        self.nosharereadymessages = {}
+        self.readymessagequeue = {}
+        self.verifiedreadymessages = {}
         self.recsharemessages = {}
         self.send_function = send_function
         #Technically these following two lists will contain hashes of commitments to hashes, as we only need to count how many duplicates we have
         self.echoedhashcommits = {}
         self.readyhashcommits = {}
-        while not self.finished:
-            sender, msg = recv_function()
-            self.receive_msg(msg)
+        if reconstruction:
+            while not self.finished:
+                sender, msg = recv_function()
+                self.receive_msg(msg)
+        else:
+            while not self.recshare:
+                sender, msg = recv_function()
+                self.receive_msg(msg)
+
+    def get_share(self):
+        assert self.recshare
+        return([self.nodeid, self.interpolatedpolyatzero])
         
     def receive_msg(self, msg):
         if msg is None:
@@ -56,15 +68,16 @@ class VssRecipient:
             msg = json.loads(msg)
         if msg['type'] == 'send':
             for key, value in msg.iteritems():
-                if key != 'type' and key != 'instance':
+                if key != 'type' and key != 'sid':
                     msg[key] = bytesToObject(value, self.group)
+            fixedcommitments = {}
             for key, value in msg['commitments'].iteritems():
-                msg['commitments'][int(key)] = msg['commitments'][key]
-                del msg['commitments'][key]
+                fixedcommitments[int(key)] = msg['commitments'][key]
+            msg['commitments'] = fixedcommitments
+            fixedwitnesses = {}
             for key, value in msg['witnesses'].iteritems():
-                msg['witnesses'][int(key)] = msg['witnesses'][key]
-                del msg['witnesses'][key]
-            #print msg
+                fixedwitnesses[int(key)] = msg['witnesses'][key]
+            msg['witnesses'] = fixedwitnesses
             if self.check_send_correctness(msg):
                 self.hashcommit = msg['hashcommit']
                 self.hashpolyhat = msg['hashpolyhat']
@@ -101,18 +114,22 @@ class VssRecipient:
                         for j in self.participantids:
                             self.send_function(j, self.send_readymsg(j))
         if msg['type'] == 'ready':
+            if self.recshare:
+                return
             for key, value in msg.iteritems():
                 if key not in ['type', 'id', 'share']:
                     msg[key] = bytesToObject(msg[key], self.group)
             #Ignore invalid messages and messages where we have already received a valid message from that sender
-            #if self.readymessages[msg['id']] is not None or (msg['share'] and not self.check_ready_correctness(msg)):
-            if msg['id'] in self.readymessages or (msg['share'] and not self.check_ready_correctness(msg)):
+            #if msg['id'] in self.readymessages or (msg['share'] and not self.check_ready_correctness(msg)):
+            if msg['id'] in self.nosharereadymessages or msg['id'] in self.readymessagequeue:
                 return
-            self.readymessages[msg['id']] = msg
+            if msg['share']:
+                self.readymessagequeue[msg['id']] = msg
+            else:
+                self.nosharereadymessages[msg['id']] = msg
             if not self.ready:
                 #This is very similar to how we receive echo messages. Basically a fallback if we don't get enough echos
-                #if self.readyhashcommits[msg['id']] == None and self.nosharehashcommits[msg['id']] == None:
-                if msg['id'] not in self.readyhashcommits and self.nosharehashcommits[msg['id']] == None:
+                if msg['id'] not in self.readyhashcommits:
                     self.readyhashcommits[msg['id']] = hashlib.sha256(str(msg['hashcommit'])).hexdigest()
                     for key, value in collections.Counter(self.readyhashcommits.values()).iteritems():
                         if value >= (self.t + 1) and key != None:
@@ -124,16 +141,43 @@ class VssRecipient:
                                 self.send_function(j, self.send_readymsg(j))
             if not self.ready:
                 return
-            validmessagecount = 0
-            for key, message in self.readymessages.iteritems():
-                if message is not None and message['hashcommit'] == self.hashcommit:
-                    validmessagecount += 1
-            if validmessagecount >= (self.k - self.t):
+            if len(self.verifiedreadymessages) <= self.t+1 and len(self.verifiedreadymessages) + len(self.readymessagequeue) >= self.t+1:
+                for key in self.readymessagequeue:
+                    readymsg = self.readymessagequeue[key]
+                    if not self.pc2.verify_eval(readymsg['hashcommit'], readymsg['id'], hexstring_to_ZR(hashlib.sha256(str(readymsg['commitment'])).hexdigest(), self.group), \
+                        readymsg['hashpolyhatpoint'], readymsg['hashpolywitness']):
+                        del self.readymessagequeue[key]
+                cs = []
+                polyevals = []
+                secretpolyevals = []
+                witnesses = []
+                for key in self.readymessagequeue:
+                    cs.append(self.readymessagequeue[key]['commitment'])
+                    polyevals.append(self.readymessagequeue[key]['polypoint'])
+                    secretpolyevals.append(self.readymessagequeue[key]['polyhatpoint'])
+                    witnesses.append(self.readymessagequeue[key]['polywitness'])
+                tfstring = self.pc.find_valid_evals(cs, self.nodeid, polyevals, secretpolyevals, witnesses)
+                i = 0
+                for key in self.readymessagequeue:
+                    if tfstring[i]:
+                        self.verifiedreadymessages[key] = self.readymessagequeue[key]
+                    i += 1
+                self.readymessagequeue = {}
+            if len(self.verifiedreadymessages.values() + self.readymessagequeue.values() + self.nosharereadymessages.values()) < (self.k - self.t):
+                return
+            correcthashcommit = str(self.verifiedreadymessages.values()[0]['hashcommit'])
+            #print correcthashcommit
+            correcthashcommitcount = 0
+            for message in self.verifiedreadymessages.values() + self.readymessagequeue.values() + self.nosharereadymessages.values():
+                if str(message['hashcommit']) == correcthashcommit:
+                    correcthashcommitcount += 1
+            #print correcthashcommitcount
+            if correcthashcommitcount >= (self.k - self.t):
                 interpolatedpolycoords = []
                 interpolatedpolyhatcoords = []
                 interpolatedcommitmentcoords = []
                 interpolatedwitnesscoords = []
-                for key, message in self.readymessages.iteritems():
+                for key, message in self. verifiedreadymessages.iteritems():
                     if message is None or not message['share'] or message['hashcommit'] != self.hashcommit:
                         continue
                     interpolatedpolycoords.append([message['id'], message['polypoint']])
@@ -186,7 +230,8 @@ class VssRecipient:
                 secrets = []
                 for i in range(self.t + 1):
                     secrets.append(interpolate_at_x(secretcoords,i,self.group))
-                print "Node " + str(self.nodeid) + ": The secret is " + str(secrets)
+                #print "Node " + str(self.nodeid) + ": The secret is " + str(secrets)
+                self.secret = secrets[0]
                 self.finished = True
 
     def check_send_correctness(self, sendmsg):
@@ -194,11 +239,20 @@ class VssRecipient:
         commitmentsvalid = check_commitment_integrity(sendmsg['commitments'], self.t, self.group)
         #verify correctness of witnesses
         witnessesvalid = True
+        polyevals = []
+        secretpolyevals = []
+        commitments = []
+        witnesses = []
         #i is the key for the dictionary. i.e. a list of ids of all participants
         for i in sendmsg['witnesses']:
             #Taking advantage of the polynomial symmetry, we know points on other polynomials too. f(nodeid, i) == f(i, nodeid)
-            witnessesvalid = witnessesvalid and \
-                self.pc.verify_eval(sendmsg['commitments'][i], self.nodeid, f(sendmsg['poly'],i), f(sendmsg['polyhat'],i), sendmsg['witnesses'][i])
+        #    witnessesvalid = witnessesvalid and \
+        #        self.pc.verify_eval(sendmsg['commitments'][i], self.nodeid, f(sendmsg['poly'],i), f(sendmsg['polyhat'],i), sendmsg['witnesses'][i])
+            polyevals.append(f(sendmsg['poly'],i))
+            secretpolyevals.append(f(sendmsg['polyhat'],i))
+            commitments.append(sendmsg['commitments'][i])
+            witnesses.append(sendmsg['witnesses'][i])
+        witnessesvalid = self.pc.batch_verify_eval(commitments, self.nodeid, polyevals, secretpolyevals, witnesses)
         #veryify correctness of hash polynomial commitment
         #hashpoly must be generated the same way as in VssDealer
         hashpolypoints = []

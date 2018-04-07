@@ -11,7 +11,7 @@ import json
 
 #Class representing a the dealer in the scheme. t is the threshold and k is the number of participants
 class VssDealer:
-    def __init__ (self, k, t, secret, pk, pk2, participantids, group, symflag, send_function, vssinstance=1, seed=None):
+    def __init__ (self, k, t, secret, pk, pk2, participantids, group, symflag, send_function, sid=1, seed=None):
         # Random polynomial coefficients constructed in the form
         #[c       x        x^2        ...  x^t
         # y       xy       x^2y       ...  x^t*y
@@ -27,7 +27,7 @@ class VssDealer:
         self.t = t
         self.k = k
         self.group = group
-        self.vssinstance = vssinstance
+        self.sid = sid
         self.a = [list(group.random(ZR, count=t+1, seed=seed)) for i in range(t+1)]
         self.ahat = [list(group.random(ZR, count=t+1, seed=seed)) for i in range(t+1)]
         self.participantids = participantids
@@ -64,7 +64,23 @@ class VssDealer:
         for j in participantids:
             witnesses = {}
             for i in participantids:
+            #for i in participantids[:t+1]:
                 witnesses[i] = self.pc.create_witness(self.projas[i], self.projahats[i], j)
+                #witnesses[i].initPP()
+            #coords = []
+            #for key,value in witnesses.iteritems():
+            #    coords.append([key, value])
+            #witnesspoly = interpolate_poly(coords, self.group)
+            #print witnesspoly
+            #witnesspoly2 = interpolate_poly(coords)
+            #print witnesspoly2
+            #for i in participantids[t+1:]:
+                #witnesses[i] = interpolate_commitment_at_x(coords, i, self.group)
+                #witnesses[i] = interpolate_at_x(coords, i, self.group)
+            #    witnesses[i] = f(witnesspoly, i)
+            #print witnesses[participantids[7]]
+            #print interpolate_at_x(coords, participantids[7], self.group)
+            #print f(witnesspoly,participantids[0])
             self.witnessvectors[j] = witnesses
         print "Witnesses Elapsed Time: " + str(os.times()[4] - time2[4])
         time2 = os.times()
@@ -85,7 +101,7 @@ class VssDealer:
     #send a "send" message to party member j
     def send_sendmsg(self, j):
         sendmsg = {}
-        sendmsg['instance'] = self.vssinstance
+        sendmsg['sid'] = self.sid
         sendmsg['type'] = 'send'
         #One commitment to the polynomial of hashes of commitments
         sendmsg['hashcommit'] = objectToBytes(self.hashcommit, self.group)
