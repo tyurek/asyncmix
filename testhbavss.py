@@ -40,7 +40,7 @@ def simple_router(participantids, maxdelay=0.01, seed=None):
 
 def main():
     offset = -1
-    t = 16
+    t = 3
     n = 3*t + 1
     seed = None
     symmetric = False
@@ -109,7 +109,7 @@ def main():
         participantpubkeys[j] = g ** participantprivkeys[j]
     time2 = os.times()
     #Initialize Players
-    thread = Greenlet(HBVssDealer, k=n, t=t,  secret=42, pk=pk, sk=participantprivkeys[dealerid], participantids=participantids, participantkeys=participantpubkeys, group=group, symflag=symmetric,recv_function = recvs[dealerid], send_function=sends[dealerid])
+    thread = Greenlet(HBVssDealer, k=n, t=t,  secret=42, pk=pk, sk=participantprivkeys[dealerid], participantids=participantids, participantkeys=participantpubkeys, group=group, symflag=symmetric, recv_function = recvs[dealerid], send_function=sends[dealerid])
     thread.start()
     threads.append(thread)
 

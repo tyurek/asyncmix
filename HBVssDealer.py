@@ -42,12 +42,11 @@ class HBVssDealer:
         for j in participantids:
             self.witnesses[j] = self.pc.create_witness(self.poly, self.polyhat, j)
         message = {}
-        message['commit'] = self.commitment
-        message['witnesses'] = self.witnesses
+        message['commit'] = objectToBytes(self.commitment, self.group)
+        message['witnesses'] = objectToBytes(self.witnesses, self.group)
         message['shares'] = self.encryptedshares
         message['dealer'] = k
-        message['polyhat'] = self.polyhat
-        print self.shares
+        message['polyhat'] = objectToBytes(self.polyhat, self.group)
         reliablebroadcast(sid, pid=k, N=k+1, f=t, leader=k, input=str(message), receive=recv_function, send=send_function)
 
     #wrapper for encryption that nicely converts crypto-things to something you can encrypt
