@@ -1,10 +1,10 @@
 from VssDealer import *
 from VssRecipient import *
 import sys
-from HelperClasses import Sender, Listener, Params, Config
+from HelperClasses import Sender, Listener, PublicKeys, Config
 
 
-def simple_router(participantids, config, sender, listener, offset):
+def simple_router(participantids, nodes_config, sender, listener, offset):
     """
     Builds a set of connected channels.
     @return (receives, sends)
@@ -13,8 +13,8 @@ def simple_router(participantids, config, sender, listener, offset):
     def makeSend(i):
         def _send(j, o):
             # print('SEND %8s [%2d -> %2d]' % (o[0], i, j))
-            sender.send_msg((i, o), config[j-offset-1].ip,
-                            config[j-offset-1].listener_port)
+            sender.send_msg((i, o), nodes_config[j-offset-1].ip,
+                            nodes_config[j-offset-1].listener_port)
         return _send
 
     def makeRecv(j):
@@ -32,17 +32,15 @@ def simple_router(participantids, config, sender, listener, offset):
     return (sends, receives)
 
 
-def get_params(idx):
-    offset = 69
-    t = 2
-    n = 7
-    seed = None
-    symmetric = False
+def get_params(idx, config):
+    t = config.t
+    n = config.n
+    seed = config.seed
+    symmetric = config.symmetric
 
     if not symmetric:
         # group = PairingGroup('BN256')
-        group_name = 'MNT159'
-        group = PairingGroup(group_name)
+        group = PairingGroup(config.group_name)
         alpha = group.random(ZR, seed=seed)
         alpha2 = group.random(ZR, seed=seed)
         pkg = group.random(G1, seed=seed)
@@ -67,8 +65,7 @@ def get_params(idx):
             pk2.append(pk2h**(alpha2**i))
     else:
         # group = PairingGroup('SS1536')
-        group_name = 'SS512'
-        group = PairingGroup(group_name)
+        group = PairingGroup(config.group_name)
         alpha = group.random(ZR, seed=seed)
         alpha2 = group.random(ZR, seed=seed)
         pkg = group.random(G1, seed=seed)
@@ -92,23 +89,20 @@ def get_params(idx):
     for item in pk2:
         item.initPP()
 
-    pkBytes = objectToBytes(pk, group)
-    pk2Bytes = objectToBytes(pk2, group)
-    dealerid = -1
-    return Params(dealerid, n, t, pkBytes, pk2Bytes, group_name, offset,
-                  symmetric)
+    pk_bytes = objectToBytes(pk, group)
+    pk2_bytes = objectToBytes(pk2, group)
+    return PublicKeys(pk_bytes, pk2_bytes)
 
 
 def start(params, config, sender, listener):
-    n = params.n
-    t = params.t
-    group_name = params.group_name
-    group = PairingGroup(group_name)
-    pk = bytesToObject(params.pk, group)
-    pk2 = bytesToObject(params.pk2, group)
-    offset = params.offset
-    symmetric = params.symmetric
-    dealerid = params.dealer_id
+    n = config.n
+    t = config.t
+    group = PairingGroup(config.group_name)
+    pk = bytesToObject(params.pk_bytes, group)
+    pk2 = bytesToObject(params.pk2_bytes, group)
+    offset = config.offset
+    symmetric = config.symmetric
+    dealerid = config.dealer_id
 
     participantids = []
     for i in range(n):
@@ -121,9 +115,11 @@ def start(params, config, sender, listener):
     # print('-'*64)
     # print(pk2)
 
+    nodes_config = config.nodes
+
     # Initialize Players
-    sends, recvs = simple_router(participantids + [dealerid], config, sender,
-                                 listener, offset)
+    sends, recvs = simple_router(participantids + [dealerid], nodes_config,
+                                 sender, listener, offset)
     if idx == -1:
         VssDealer(k=n, t=t,  secret=[42, 69, 420, 11111, 1717], pk=pk, pk2=pk2,
                   participantids=participantids, group=group,
@@ -135,22 +131,20 @@ def start(params, config, sender, listener):
                      recv_function=recvs[idx+1+offset], reconstruction=True)
 
 
-
-config = Config(sys.argv[1]).config
+config = Config(sys.argv[1])
+nodes_config = config.nodes
 idx = int(sys.argv[2])
 
-listener = Listener(config[idx].listener_port)
+listener = Listener(nodes_config[idx].listener_port)
 sender = Sender()
 debug = True
 
 if idx == -1:
-    params = get_params(idx)
-    for keys in config.keys():
+    params = get_params(idx, config)
+    for keys in nodes_config.keys():
         if keys != -1:
-            # print("### ATTEMPTING SEND")
-            sender.send_msg(params, config[keys].ip,
-                            config[keys].listener_port)
-            # print("### SEND SUCCESSFUL")
+            sender.send_msg(params, nodes_config[keys].ip,
+                            nodes_config[keys].listener_port)
 else:
     params = listener.get_msg()
 

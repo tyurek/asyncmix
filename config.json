@@ -1,0 +1,58 @@
+{
+    "T": 2,
+    "Seed": "",
+    "Offset": 69,
+    "GroupName": "MNT159",
+    "Symmetric": false,
+    "Dealer":
+             {
+                 "Id": -1,
+                 "Ip": "127.0.0.1",
+                 "SenderPort" : 8000,
+                 "ListenerPort": 9000
+             },
+    "Recipients": [
+             {
+                 "Id": 0,
+                 "Ip": "127.0.0.1",
+                 "SenderPort" : 8001,
+                 "ListenerPort": 9001
+             },
+             {
+                 "Id": 1,
+                 "Ip": "127.0.0.1",
+                 "SenderPort" : 8002,
+                 "ListenerPort": 9002
+             },
+             {
+                 "Id": 2,
+                 "Ip": "127.0.0.1",
+                 "SenderPort" : 8003,
+                 "ListenerPort": 9003
+             },
+             {
+                 "Id": 3,
+                 "Ip": "127.0.0.1",
+                 "SenderPort" : 8004,
+                 "ListenerPort": 9004
+             },
+             {
+                 "Id": 4,
+                 "Ip": "127.0.0.1",
+                 "SenderPort" : 8005,
+                 "ListenerPort": 9005
+             },
+             {
+                 "Id": 5,
+                 "Ip": "127.0.0.1",
+                 "SenderPort" : 8006,
+                 "ListenerPort": 9006
+             },
+             {
+                 "Id": 6,
+                 "Ip": "127.0.0.1",
+                 "SenderPort" : 8007,
+                 "ListenerPort": 9007
+             }
+    ]
+}

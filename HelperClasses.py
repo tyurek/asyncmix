@@ -2,23 +2,17 @@ import socket
 import pickle
 from threading import Thread
 from Queue import Queue
+import json
 
 
-class Params(object):
+class PublicKeys(object):
     """
     Parameters which are common and to be used by all participants.
     """
 
-    def __init__(self, dealer_id, n, t, pk, pk2, group_name, offset,
-                 symmetric):
-        self.dealer_id = dealer_id
-        self.n = n
-        self.t = t
-        self.pk = pk
-        self.pk2 = pk2
-        self.group_name = group_name
-        self.offset = offset
-        self.symmetric = symmetric
+    def __init__(self, pk_bytes, pk2_bytes):
+        self.pk_bytes = pk_bytes
+        self.pk2_bytes = pk2_bytes
 
 
 class Sender(object):
@@ -79,17 +73,25 @@ class NodeDetails(object):
 
 
 class Config(object):
-    """
-    Describes the config which contains node information.
-    The config is of the form:
-        Id:Ip:Sender_Port:Listener_Port
-    """
 
     def __init__(self, config_file_path):
-        self.config = {}
-        with open(config_file_path, "r") as file_handle:
-            for line in file_handle:
-                idx, ip, sender_port, listener_port = line.split(":")
-                idx = int(idx)
-                self.config[idx] = NodeDetails(ip, int(sender_port),
-                                               int(listener_port))
+        config = json.load(open(config_file_path))
+        self.t = config["T"]
+        self.seed = None if config["Seed"] == "" else config["Seed"]
+        self.group_name = str(config["GroupName"])
+        self.symmetric = config["Symmetric"]
+        self.offset = config["Offset"]
+        self.dealer_id = config["Dealer"]["Id"]
+        self.nodes = {}
+        self.nodes[config["Dealer"]["Id"]] = (NodeDetails(
+            config["Dealer"]["Ip"],
+            config["Dealer"]["SenderPort"],
+            config["Dealer"]["ListenerPort"]
+            ))
+        self.n = len(config["Recipients"])
+        for recipient in config["Recipients"]:
+            self.nodes[recipient["Id"]] = (NodeDetails(
+                recipient["Ip"],
+                recipient["SenderPort"],
+                recipient["ListenerPort"]
+                ))
