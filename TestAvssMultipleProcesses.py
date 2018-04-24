@@ -130,10 +130,6 @@ def start(public_keys, config, sender, listener):
                      symflag=symmetric, send_function=sends[idx+1+offset],
                      recv_function=recvs[idx+1+offset], reconstruction=True)
 
-        # Once done, send terminate to dealer.
-        # sender.send_msg("Terminate", nodes_config[dealerid].ip,
-        #     nodes_config[dealerid].listener_port)
-
 
 config = Config(sys.argv[1])
 nodes_config = config.nodes
