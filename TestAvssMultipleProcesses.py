@@ -32,7 +32,7 @@ def simple_router(participantids, nodes_config, sender, listener, offset):
     return (sends, receives)
 
 
-def get_params(idx, config):
+def get_public_keys(idx, config):
     t = config.t
     n = config.n
     seed = config.seed
@@ -94,12 +94,12 @@ def get_params(idx, config):
     return PublicKeys(pk_bytes, pk2_bytes)
 
 
-def start(params, config, sender, listener):
+def start(public_keys, config, sender, listener):
     n = config.n
     t = config.t
     group = PairingGroup(config.group_name)
-    pk = bytesToObject(params.pk_bytes, group)
-    pk2 = bytesToObject(params.pk2_bytes, group)
+    pk = bytesToObject(public_keys.pk_bytes, group)
+    pk2 = bytesToObject(public_keys.pk2_bytes, group)
     offset = config.offset
     symmetric = config.symmetric
     dealerid = config.dealer_id
@@ -130,6 +130,10 @@ def start(params, config, sender, listener):
                      symflag=symmetric, send_function=sends[idx+1+offset],
                      recv_function=recvs[idx+1+offset], reconstruction=True)
 
+        # Once done, send terminate to dealer.
+        # sender.send_msg("Terminate", nodes_config[dealerid].ip,
+        #     nodes_config[dealerid].listener_port)
+
 
 config = Config(sys.argv[1])
 nodes_config = config.nodes
@@ -140,12 +144,14 @@ sender = Sender()
 debug = True
 
 if idx == -1:
-    params = get_params(idx, config)
+    # If dealer, create public keys and send to all recipients.
+    public_keys = get_public_keys(idx, config)
     for keys in nodes_config.keys():
         if keys != -1:
-            sender.send_msg(params, nodes_config[keys].ip,
+            sender.send_msg(public_keys, nodes_config[keys].ip,
                             nodes_config[keys].listener_port)
 else:
-    params = listener.get_msg()
+    # If recipient, wait for public keys from the dealer.
+    public_keys = listener.get_msg()
 
-start(params, config, sender, listener)
+start(public_keys, config, sender, listener)
