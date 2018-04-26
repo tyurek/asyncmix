@@ -95,6 +95,10 @@ class Config(object):
 
     def __init__(self, config_file_path):
         config = json.load(open(config_file_path))
+        self.prepare_config_object(config)
+        self.json = config
+
+    def prepare_config_object(self, config):
         self.t = config["T"]
         self.seed = None if config["Seed"] == "" else config["Seed"]
         self.group_name = str(config["GroupName"])
