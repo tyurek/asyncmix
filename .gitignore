@@ -1,3 +1,4 @@
 *.pyc
 .vscode/
-current.vmsec2/aws-config.json
+current.vms
+ec2/aws-config.json
