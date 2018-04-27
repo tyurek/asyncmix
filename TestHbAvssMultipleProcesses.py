@@ -119,15 +119,19 @@ def start(idx, public_keys, config, sender, listener, priv_key, pub_keys):
 
     #Initialize Players
     if idx == dealer_id:
+        print "I AM DEALER YO!!!!!"
         HBVssDealer(k=n, t=t,  secret=42, pk=pk, sk=priv_key,
             participantids=participantids, participantkeys=pub_keys,
             group=group, symflag=symmetric, recv_function = recvs[dealer_id],
             send_function=sends[dealer_id])
+        print "DONE"
     else:
+        print "I AM RECIPIENT!!!"
         HBVssRecipient(k=n, t=t, nodeid=idx, sk=priv_key,
             pk=pk, participantids=participantids, reconstruction=True,
             participantkeys=pub_keys, group=group, symflag=symmetric,
             send_function=sends[idx], recv_function=recvs[idx])
+        print "DONE"
 
     print "Elapsed Time: " + str(os.times()[4] - time2[4])
 
