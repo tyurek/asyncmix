@@ -64,7 +64,7 @@ class Listener(object):
                 # print(">> Recieved")
                 self.queue.put(pickle.loads(received_msg))
                 sender.close()
-        except ex as ValueError:
+        except ValueError as ex:
             # Eat up any exception, since this is a daemon thread and
             # we don't want to error out.
             print ex
