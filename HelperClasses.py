@@ -33,7 +33,7 @@ class Sender(object):
             # reconstruction and the listener might have terminated.
             if serr.errno != errno.ECONNREFUSED:
                 raise serr
-            print serr
+            print ip, receiver_port, serr
         finally:
             receiver.close()
 
@@ -67,7 +67,7 @@ class Listener(object):
         except:
             # Eat up any exception, since this is a daemon thread and
             # we don't want to error out.
-            print "Unexpected error:", sys.exc_info()[0]
+            print "Unexpected error:", sys.exc_info()[0], address
         finally:
             self.listener.close()
 
