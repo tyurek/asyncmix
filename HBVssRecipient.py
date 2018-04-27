@@ -52,7 +52,7 @@ class HBVssRecipient:
                 self.okcount += 1
                 if self.okcount == 2*t + 1:
                     self.output = self.share
-                    print self.share
+                    print "Share:", self.share
                 if self.okcount == k:
                     self.finished = True
             elif msg[0] == 'implicate':

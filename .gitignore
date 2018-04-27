@@ -1,4 +1,5 @@
 *.pyc
 .vscode/
 current.vms
+charm/
 ec2/aws-config.json

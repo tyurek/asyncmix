@@ -57,7 +57,7 @@ class Listener(object):
         try:
             self.listener.listen(5)
             while True:
-                sender = self.listener.accept()[0]
+                sender, address = self.listener.accept()
                 # print('Got connection from', address)
                 received_msg = sender.recv(self.MAX_BYTES)
                 # print(">> Recieved")
