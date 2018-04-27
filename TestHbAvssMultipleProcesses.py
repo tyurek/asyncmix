@@ -13,8 +13,8 @@ def simple_router(participantids, nodes_config, sender, listener, offset):
 
     def makeSend(i):
         def _send(j, o):
-            # print('SEND %8s [%2d -> %2d] [%s:%d]' % (o[0], i, j,
-            #     nodes_config[j].ip, nodes_config[j].listener_port))
+            print('SEND %8s [%2d -> %2d] [%s:%d]' % (o[0], i, j,
+                nodes_config[j].ip, nodes_config[j].listener_port))
             sender.send_msg((i, o), nodes_config[j].ip,
                             nodes_config[j].listener_port)
         return _send
@@ -22,7 +22,7 @@ def simple_router(participantids, nodes_config, sender, listener, offset):
     def makeRecv(j):
         def _recv():
             (i, o) = listener.get_msg()
-            # print('RECV %8s [%2d -> %2d]' % (o[0], i, j))
+            print('RECV %8s [%2d -> %2d]' % (o[0], i, j))
             return (i, o)
         return _recv
 
