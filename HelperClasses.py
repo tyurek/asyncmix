@@ -64,12 +64,10 @@ class Listener(object):
                 # print(">> Recieved")
                 self.queue.put(pickle.loads(received_msg))
                 sender.close()
-        except:
+        except ex as ValueError:
             # Eat up any exception, since this is a daemon thread and
             # we don't want to error out.
-            print "Unexpected error:", sys.exc_info()[0], address
-        finally:
-            self.listener.close()
+            print ex
 
     def get_msg(self):
         """
