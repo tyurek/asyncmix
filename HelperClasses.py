@@ -23,7 +23,7 @@ class Sender(object):
     """
 
     def send_msg(self, msg, ip, receiver_port):
-        receiver = socket.socket()
+        receiver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             receiver.connect((ip, receiver_port))
             receiver.send(pickle.dumps(msg))
@@ -43,7 +43,7 @@ class Listener(object):
     """
 
     def __init__(self, listener_port):
-        self.listener = socket.socket()
+        self.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # To reuse the same address again since this is a daemon thread.
         self.listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.listener.bind(('', listener_port))
