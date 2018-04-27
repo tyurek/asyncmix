@@ -5,7 +5,7 @@ import pickle
 from threading import Thread
 from Queue import Queue
 import json
-
+import sys
 
 class PublicKeys(object):
     """
@@ -33,6 +33,7 @@ class Sender(object):
             # reconstruction and the listener might have terminated.
             if serr.errno != errno.ECONNREFUSED:
                 raise serr
+            print serr
         finally:
             receiver.close()
 
@@ -66,7 +67,7 @@ class Listener(object):
         except:
             # Eat up any exception, since this is a daemon thread and
             # we don't want to error out.
-            pass
+            print "Unexpected error:", sys.exc_info()[0]
         finally:
             self.listener.close()
 
