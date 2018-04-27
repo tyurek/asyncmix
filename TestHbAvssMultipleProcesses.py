@@ -94,6 +94,7 @@ def get_keys(idx, config):
     for j in range(n+1):
         participantprivkeys[j] =  group.random(ZR)
         participantpubkeys[j] = g ** participantprivkeys[j]
+        print j, participantprivkeys[j], participantpubkeys[j]
         participantprivkeys[j] = objectToBytes(participantprivkeys[j], group)
         participantpubkeys[j] = objectToBytes(participantpubkeys[j], group)
 
@@ -160,7 +161,6 @@ else:
     # If recipient, wait for keys from the dealer.
     public_keys = listener.get_msg()
     priv_key, pub_keys = listener.get_msg()
-    print priv_key, pub_keys
 
 
 group = PairingGroup(config.group_name)
@@ -168,4 +168,8 @@ priv_key = bytesToObject(priv_key, group)
 for k in pub_keys.keys():
     pub_keys[k] = bytesToObject(pub_keys[k], group)
 
+print priv_key
+print '-' * 64
+for a, b in pub_keys.items():
+    print a, b
 start(idx, public_keys, config, sender, listener, priv_key, pub_keys)
