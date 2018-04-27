@@ -156,6 +156,7 @@ else:
     # If recipient, wait for keys from the dealer.
     public_keys = listener.get_msg()
     priv_key, pub_keys = listener.get_msg()
+    print priv_key, pub_keys
 
 
 group = PairingGroup(config.group_name)
