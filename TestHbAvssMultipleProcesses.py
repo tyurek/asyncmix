@@ -33,7 +33,7 @@ def simple_router(participantids, nodes_config, sender, listener, offset):
         receives[i] = makeRecv(i)
     return (sends, receives)
 
-def get_public_keys(idx, config):
+def get_keys(idx, config):
     t = config.t
     n = 3*t + 1
     seed = config.seed
@@ -101,31 +101,28 @@ def get_public_keys(idx, config):
     pk2_bytes = objectToBytes(pk2, group)
     return PublicKeys(pk_bytes, pk2_bytes), participantprivkeys, participantpubkeys
 
-def start(public_keys, config, sender, listener, priv_key, pub_keys):
+def start(idx, public_keys, config, sender, listener, priv_key, pub_keys):
 
     t = config.t
     n = 3*t + 1
-    
-    seed = config.seed
+
     group = PairingGroup(config.group_name)
     symmetric = config.symmetric
     pk = bytesToObject(public_keys.pk_bytes, group)
-    pk2 = bytesToObject(public_keys.pk2_bytes, group)
 
-    participantids = []
-    for i in range(n):
-        participantids.append(i)
-    dealerid = config.dealer_id
-    sends, recvs = simple_router(participantids + [dealerid], config.nodes,
-                                sender, listener, dealerid)
+    participantids = range(n)
+    dealer_id = config.dealer_id
+    sends, recvs = simple_router(participantids + [dealer_id], config.nodes,
+                                sender, listener, dealer_id)
 
     time2 = os.times()
+
     #Initialize Players
-    if idx == dealerid:
+    if idx == dealer_id:
         HBVssDealer(k=n, t=t,  secret=42, pk=pk, sk=priv_key,
             participantids=participantids, participantkeys=pub_keys,
-            group=group, symflag=symmetric, recv_function = recvs[dealerid],
-            send_function=sends[dealerid])
+            group=group, symflag=symmetric, recv_function = recvs[dealer_id],
+            send_function=sends[dealer_id])
     else:
         HBVssRecipient(k=n, t=t, nodeid=idx, sk=priv_key,
             pk=pk, participantids=participantids, reconstruction=True,
@@ -143,31 +140,27 @@ listener = Listener(nodes_config[idx].listener_port)
 sender = Sender()
 debug = True
 
+dealer_id = config.dealer_id
 
-if idx == len(config.nodes.keys())-1:
-    # If dealer, create public keys and send to all recipients.
-    public_keys, participantprivkeys, participantpubkeys = get_public_keys(idx, config)
+if idx == dealer_id:
+    # If dealer, create keys and send to all recipients.
+    public_keys, priv_keys, pub_keys = get_keys(idx, config)
+    priv_key = priv_keys[dealer_id]
     for key in nodes_config.keys():
-        if key != len(config.nodes.keys())-1:
+        if key != dealer_id:
             sender.send_msg(public_keys, nodes_config[key].ip,
                             nodes_config[key].listener_port)
-            sender.send_msg([participantprivkeys[key], participantpubkeys],
-                            nodes_config[key].ip, nodes_config[key].listener_port)
-    
-    group = PairingGroup(config.group_name)
-    priv_key = bytesToObject(participantprivkeys[7], group)
-    for k in participantpubkeys.keys():
-        participantpubkeys[k] = bytesToObject(participantpubkeys[k], group)
-    pub_keys = participantpubkeys
+            sender.send_msg([priv_keys[key], pub_keys], nodes_config[key].ip,
+                                nodes_config[key].listener_port)
 else:
-    # If recipient, wait for public keys from the dealer.
+    # If recipient, wait for keys from the dealer.
     public_keys = listener.get_msg()
     priv_key, pub_keys = listener.get_msg()
-    
-    group = PairingGroup(config.group_name)
-    priv_key = bytesToObject(priv_key, group)
-    for k in pub_keys.keys():
-        pub_keys[k] = bytesToObject(pub_keys[k], group)
-    
 
-start(public_keys, config, sender, listener, priv_key, pub_keys)
+
+group = PairingGroup(config.group_name)
+priv_key = bytesToObject(priv_key, group)
+for k in pub_keys.keys():
+    pub_keys[k] = bytesToObject(pub_keys[k], group)
+
+start(idx, public_keys, config, sender, listener, priv_key, pub_keys)
