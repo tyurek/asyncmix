@@ -60,7 +60,7 @@ class Listener(object):
             self.listener.listen(5)
             while True:
                 sender, address = self.listener.accept()
-                print('Got connection from', address)
+                # print('Got connection from', address)
                 received_msg = sender.recv(self.MAX_BYTES)
                 print(">> Recieved", address, len(received_msg))
                 self.queue.put(pickle.loads(received_msg))
