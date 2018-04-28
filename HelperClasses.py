@@ -27,12 +27,12 @@ class Sender(object):
         try:
             receiver.connect((ip, receiver_port))
             receiver.send(pickle.dumps(msg))
-            # print("SENDING MESSAGE:", ip, receiver_port, len(pickle.dumps(msg)))
+            print(">> SENDING", ip, receiver_port, len(pickle.dumps(msg)))
         except socket_error as serr:
             # It is okay to get a connection refused error since
             # other shares might have been used to complete
             # reconstruction and the listener might have terminated.
-            # print "SENDING ERROR >>>>>>>>>", ip, receiver_port, serr
+            print("############# ERROR #############", serr)
             if serr.errno != errno.ECONNREFUSED:
                 raise serr
         finally:
@@ -62,14 +62,14 @@ class Listener(object):
                 sender, address = self.listener.accept()
                 # print('Got connection from', address)
                 received_msg = sender.recv(self.MAX_BYTES)
-                # print(">> Recieved", address, len(received_msg))
+                print(">> RECEIVING", address, len(received_msg))
                 self.queue.put(pickle.loads(received_msg))
                 sender.close()
         except ValueError as ex:
             # Eat up any exception, since this is a daemon thread and
             # we don't want to error out.
-            # print "RECEIVING ERROR #############", ex
-            pass
+            print("############# ERROR #############", ex)
+            # pass
 
     def get_msg(self):
         """
