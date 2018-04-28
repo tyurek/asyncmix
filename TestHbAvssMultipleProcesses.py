@@ -13,7 +13,7 @@ def simple_router(participantids, nodes_config, sender, listener, offset):
 
     def makeSend(i):
         def _send(j, o):
-            print('SEND %8s [%2d -> %2d] [%s:%d]' % (o[0], i, j,
+            # print('SEND %8s [%2d -> %2d] [%s:%d]' % (o[0], i, j,
                 nodes_config[j].ip, nodes_config[j].listener_port))
             sender.send_msg((i, o), nodes_config[j].ip,
                             nodes_config[j].listener_port)
@@ -22,7 +22,7 @@ def simple_router(participantids, nodes_config, sender, listener, offset):
     def makeRecv(j):
         def _recv():
             (i, o) = listener.get_msg()
-            print('RECV %8s [%2d -> %2d]' % (o[0], i, j))
+            # print('RECV %8s [%2d -> %2d]' % (o[0], i, j))
             return (i, o)
         return _recv
 
@@ -120,19 +120,15 @@ def start(idx, public_keys, config, sender, listener, priv_key, pub_keys):
 
     #Initialize Players
     if idx == dealer_id:
-        print "I AM DEALER YO!!!!!"
         HBVssDealer(k=n, t=t,  secret=42, pk=pk, sk=priv_key,
             participantids=participantids, participantkeys=pub_keys,
             group=group, symflag=symmetric, recv_function = recvs[dealer_id],
             send_function=sends[dealer_id])
-        print "DONE"
     else:
-        print "I AM RECIPIENT!!!"
         HBVssRecipient(k=n, t=t, nodeid=idx, sk=priv_key,
             pk=pk, participantids=participantids, reconstruction=True,
             participantkeys=pub_keys, group=group, symflag=symmetric,
             send_function=sends[idx], recv_function=recvs[idx])
-        print "DONE"
 
     print "Elapsed Time: " + str(os.times()[4] - time2[4])
 
