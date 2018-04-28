@@ -168,8 +168,8 @@ priv_key = bytesToObject(priv_key, group)
 for k in pub_keys.keys():
     pub_keys[k] = bytesToObject(pub_keys[k], group)
 
-print priv_key
-print '-' * 64
-for a, b in pub_keys.items():
-    print a, b
+# print priv_key
+# print '-' * 64
+# for a, b in pub_keys.items():
+#     print a, b
 start(idx, public_keys, config, sender, listener, priv_key, pub_keys)
