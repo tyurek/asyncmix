@@ -27,7 +27,7 @@ class Sender(object):
         try:
             receiver.connect((ip, receiver_port))
             receiver.send(pickle.dumps(msg))
-            print("SENDING MESSAGE:", ip, receiver_port, pickle.dumps(msg))
+            print("SENDING MESSAGE:", ip, receiver_port, len(pickle.dumps(msg)))
         except socket_error as serr:
             # It is okay to get a connection refused error since
             # other shares might have been used to complete
@@ -62,7 +62,7 @@ class Listener(object):
                 sender, address = self.listener.accept()
                 print('Got connection from', address)
                 received_msg = sender.recv(self.MAX_BYTES)
-                print(">> Recieved", address, received_msg)
+                print(">> Recieved", address, len(received_msg))
                 self.queue.put(pickle.loads(received_msg))
                 sender.close()
         except ValueError as ex:
