@@ -1,6 +1,7 @@
 #!/bin/bash
 sudo yum -y update
 sudo yum -y install gmp-devel git m4 python-devel openssl-devel gcc flex bison
+sudo pip install zfec
 wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz
 tar -xvzf pbc-0.5.14.tar.gz
 pushd pbc-0.5.14
