@@ -7,6 +7,15 @@ from Queue import Queue
 import json
 import sys
 
+info = {"54.157.197.13": 0,
+        "54.210.114.120": 1,
+        "52.90.241.154": 2,
+        "34.230.47.147": 3,
+        "35.173.178.240": 4,
+        "52.55.147.68": 5,
+        "54.89.253.191": 6,
+        "54.167.70.68": 7}
+
 class PublicKeys(object):
     """
     Parameters which are common and to be used by all participants.
@@ -27,7 +36,7 @@ class Sender(object):
         try:
             receiver.connect((ip, receiver_port))
             receiver.send(pickle.dumps(msg))
-            print(">> SENDING", ip, receiver_port, len(pickle.dumps(msg)))
+            print(">> SENDING", info[ip], len(pickle.dumps(msg)))
         except socket_error as serr:
             # It is okay to get a connection refused error since
             # other shares might have been used to complete
@@ -62,7 +71,7 @@ class Listener(object):
                 sender, address = self.listener.accept()
                 # print('Got connection from', address)
                 received_msg = sender.recv(self.MAX_BYTES)
-                print(">> RECEIVING", address, len(received_msg))
+                print(">> RECEIVING", info[address[0]], len(received_msg))
                 self.queue.put(pickle.loads(received_msg))
                 sender.close()
         except ValueError as ex:
