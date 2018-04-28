@@ -56,7 +56,7 @@ class Listener(object):
     def __init__(self, listener_port):
         self.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # To reuse the same address again since this is a daemon thread.
-        self.listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # self.listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.listener.bind(('', listener_port))
         self.MAX_BYTES = 2048
         thread = Thread(target=self.__start_listener)
