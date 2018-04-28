@@ -49,7 +49,7 @@ class Listener(object):
         # To reuse the same address again since this is a daemon thread.
         self.listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.listener.bind(('', listener_port))
-        self.MAX_BYTES = 1024*32
+        self.MAX_BYTES = 1024*1024
         thread = Thread(target=self.__start_listener)
         thread.setDaemon(True)
         self.queue = Queue()
