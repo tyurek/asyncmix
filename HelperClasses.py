@@ -26,7 +26,6 @@ class Sender(object):
         receiver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             receiver.connect((ip, receiver_port))
-            print msg
             receiver.send(pickle.dumps(msg))
         except socket_error as serr:
             # It is okay to get a connection refused error since
@@ -60,7 +59,7 @@ class Listener(object):
             self.listener.listen(5)
             while True:
                 sender, address = self.listener.accept()
-                # print('Got connection from', address)
+                print('Got connection from', address)
                 received_msg = sender.recv(self.MAX_BYTES)
                 # print(">> Recieved")
                 self.queue.put(pickle.loads(received_msg))
