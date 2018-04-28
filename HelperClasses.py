@@ -31,9 +31,9 @@ class Sender(object):
             # It is okay to get a connection refused error since
             # other shares might have been used to complete
             # reconstruction and the listener might have terminated.
+            print "SENDING ERROR >>>>>>>>>", ip, receiver_port, serr
             if serr.errno != errno.ECONNREFUSED:
                 raise serr
-            print ip, receiver_port, serr
         finally:
             receiver.close()
 
@@ -67,7 +67,7 @@ class Listener(object):
         except ValueError as ex:
             # Eat up any exception, since this is a daemon thread and
             # we don't want to error out.
-            print ex
+            print "RECEIVING ERROR #############", ex
 
     def get_msg(self):
         """
