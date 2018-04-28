@@ -26,6 +26,7 @@ class Sender(object):
         receiver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             receiver.connect((ip, receiver_port))
+            print msg
             receiver.send(pickle.dumps(msg))
         except socket_error as serr:
             # It is okay to get a connection refused error since
