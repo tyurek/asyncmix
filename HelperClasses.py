@@ -27,7 +27,7 @@ class Sender(object):
         try:
             receiver.connect((ip, receiver_port))
             receiver.send(pickle.dumps(msg))
-            print("SENDING MESSAGE:", ip, receiver_port, msg)
+            print("SENDING MESSAGE:", ip, receiver_port, pickle.dumps(msg))
         except socket_error as serr:
             # It is okay to get a connection refused error since
             # other shares might have been used to complete
