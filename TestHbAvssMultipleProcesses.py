@@ -94,7 +94,7 @@ def get_keys(idx, config):
     for j in range(n+1):
         participantprivkeys[j] =  group.random(ZR)
         participantpubkeys[j] = g ** participantprivkeys[j]
-        print j, participantprivkeys[j], participantpubkeys[j]
+        # print j, participantprivkeys[j], participantpubkeys[j]
         participantprivkeys[j] = objectToBytes(participantprivkeys[j], group)
         participantpubkeys[j] = objectToBytes(participantpubkeys[j], group)
 
