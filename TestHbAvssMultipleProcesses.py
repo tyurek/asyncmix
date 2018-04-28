@@ -14,7 +14,7 @@ def simple_router(participantids, nodes_config, sender, listener, offset):
     def makeSend(i):
         def _send(j, o):
             # print('SEND %8s [%2d -> %2d] [%s:%d]' % (o[0], i, j,
-                nodes_config[j].ip, nodes_config[j].listener_port))
+                # nodes_config[j].ip, nodes_config[j].listener_port))
             sender.send_msg((i, o), nodes_config[j].ip,
                             nodes_config[j].listener_port)
         return _send
