@@ -230,7 +230,7 @@ class VssRecipient:
                 secrets = []
                 for i in range(self.t + 1):
                     secrets.append(interpolate_at_x(secretcoords,i,self.group))
-                #print "Node " + str(self.nodeid) + ": The secret is " + str(secrets)
+                print "Node " + str(self.nodeid) + ": The secret is " + str(secrets)
                 self.secret = secrets[0]
                 self.finished = True
 
