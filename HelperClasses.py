@@ -1,20 +1,12 @@
 import socket
 import errno
 from socket import error as socket_error
-import pickle
+import cPickle as pickle
 from threading import Thread
 from Queue import Queue
 import json
+import struct
 import sys
-
-info = {"54.157.197.13": 0,
-        "54.210.114.120": 1,
-        "52.90.241.154": 2,
-        "34.230.47.147": 3,
-        "35.173.178.240": 4,
-        "52.55.147.68": 5,
-        "54.89.253.191": 6,
-        "54.167.70.68": 7}
 
 class PublicKeys(object):
     """
@@ -35,13 +27,15 @@ class Sender(object):
         receiver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             receiver.connect((ip, receiver_port))
-            receiver.send(pickle.dumps(msg))
-            print(">> SENDING", info[ip], len(pickle.dumps(msg)))
+            data = pickle.dumps(msg)
+            padded_msg = struct.pack('>I', len(data)) + data
+            receiver.sendall(padded_msg)
+            # print(">> SENDING", ip, len(data))
         except socket_error as serr:
             # It is okay to get a connection refused error since
             # other shares might have been used to complete
             # reconstruction and the listener might have terminated.
-            print("############# SEND ERROR #############", serr, info[ip])
+            print("############# SEND ERROR #############", serr, ip)
             if serr.errno != errno.ECONNREFUSED:
                 raise serr
         finally:
@@ -70,15 +64,33 @@ class Listener(object):
             while True:
                 sender, address = self.listener.accept()
                 # print('Got connection from', address)
-                received_msg = sender.recv(self.MAX_BYTES)
-                print(">> RECEIVING", info[address[0]], len(received_msg))
-                self.queue.put(pickle.loads(received_msg))
+                raw_msglen = self.recvall(sender, 4)
+                if not raw_msglen:
+                    # print "$$$$$ PUTTING NOTHING $$$$"
+                    received_msg = [-1, ["JUNK"]]
+                else:
+                    msglen = struct.unpack('>I', raw_msglen)[0]
+                    received_raw_msg = self.recvall(sender, msglen)
+                    received_msg = pickle.loads(received_raw_msg)
+                    # print(">> RECEIVING", address[0], len(received_raw_msg))
+                self.queue.put(received_msg)
                 sender.close()
         except ValueError as ex:
             # Eat up any exception, since this is a daemon thread and
             # we don't want to error out.
             print("############# RECV ERROR #############", ex)
             # pass
+
+
+    def recvall(self, sock, n):
+        # Helper function to recv n bytes or return None if EOF is hit
+        data = b''
+        while len(data) < n:
+            packet = sock.recv(n - len(data))
+            if not packet:
+                return None
+            data += packet
+        return data
 
     def get_msg(self):
         """
