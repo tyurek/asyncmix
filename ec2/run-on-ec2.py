@@ -28,7 +28,7 @@ def run_avss(ec2Manager, config, config_json, instance_ids):
         commands = [build_commands, create_config, command]
         node_thread = threading.Thread(target=ec2Manager
             .execute_command_on_instance, args=[instance_id, commands])
-        node_thread.start()
+        node_thread.start() 
         node_threads.append(node_thread)
 
     for node_thread in node_threads:
@@ -42,18 +42,15 @@ def run_hbavss(ec2Manager, config, config_json, instance_ids):
     instance_ids.append(instance_ids[0])
     del instance_ids[0]
     new_config_json = json.dumps(config_json)
-    print new_config_json
     create_config = "echo '" + new_config_json + "' > ~/new_config.json"
     kill_command = "killall python"
+    build_commands = ("pushd ~/charm; sudo ./configure.sh; sudo make; " +
+                            "sudo make install; sudo ldconfig; popd")
     node_threads = []
     for instance_id, id in zip(instance_ids, ids):
         command = ("python ~/asyncmix/TestHbAvssMultipleProcesses.py " +
                         "~/new_config.json " + str(id) + " > ~/output")
-        build_commands = ("pushd ~/charm; sudo ./configure.sh; sudo make; " +
-                            "sudo make install; sudo ldconfig; popd")
-
-        # commands = [build_commands, create_config, command]
-        commands = [kill_command]
+        commands = [kill_command, build_commands, create_config, command]
         node_thread = threading.Thread(target=ec2Manager
             .execute_command_on_instance, args=[instance_id, commands])
         node_thread.start()
