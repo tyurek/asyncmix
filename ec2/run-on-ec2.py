@@ -75,7 +75,12 @@ config_path = sys.argv[1]
 config = Config(config_path)
 total_vms = len(config.nodes.keys())
 ec2Manager = EC2Manager()
-config_json, instance_ids = update_json_and_instance_ids(ec2Manager, config.json,
-                        total_vms)
+config_json, instance_ids = update_json_and_instance_ids(ec2Manager,
+                                config.json, total_vms)
 config.prepare_config_object(config_json)
-run_hbavss(ec2Manager, config, config_json, instance_ids)
+
+if config.is_hbavss:
+    run_hbavss(ec2Manager, config, config_json, instance_ids)
+else:
+    run_avss(ec2Manager, config, config_json, instance_ids)
+

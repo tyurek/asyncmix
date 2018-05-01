@@ -126,6 +126,8 @@ class Config(object):
         self.group_name = str(config["GroupName"])
         self.symmetric = config["Symmetric"]
         self.offset = config["Offset"]
+        self.is_hbavss = (True if config["Protocol"].lower() == "hbavss" else
+                            False)
         self.dealer_id = config["Dealer"]["Id"]
         self.nodes = {}
         self.nodes[config["Dealer"]["Id"]] = (NodeDetails(

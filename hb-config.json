@@ -4,6 +4,7 @@
     "Offset": -1,
     "GroupName": "MNT159",
     "Symmetric": false,
+    "Protocol" : "HbAvss",
     "Dealer":
              {
                  "Id": 7,
