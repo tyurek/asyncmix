@@ -227,10 +227,11 @@ def prove_same_exponent(e1,e2,exp,group):
     k2 = e2 ** blind
     challenge = hexstring_to_ZR(hashlib.sha256(str(k1) + str(k2)).hexdigest(), group)
     s = blind - challenge*exp
-    return [k1, k2, challenge, s]
+    return [k1, k2, s]
 
 #"proof" is a list of the form [k1, k2, challenge, s]
-def check_same_exponent_proof(proof, e1, e2, g1, g2):
-    eq1 = str(proof[0]) == str(e1 ** proof[3] * g1 ** proof[2])
-    eq2 = str(proof[1]) == str(e2 ** proof[3] * g2 ** proof[2])
+def check_same_exponent_proof(proof, e1, e2, g1, g2, group):
+    challenge = hexstring_to_ZR(hashlib.sha256(str(proof[0]) + str(proof[1])).hexdigest(), group)
+    eq1 = str(proof[0]) == str(e1 ** proof[2] * g1 ** challenge)
+    eq2 = str(proof[1]) == str(e2 ** proof[2] * g2 ** challenge)
     return eq1 and eq2

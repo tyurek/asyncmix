@@ -145,8 +145,8 @@ class EvilHBVss2Recipient:
         msg = []
         msg.append("implicate")
         msg.append(self.sharedkey**27)
+        #msg.append(self.sharedkey)
         msg.append(prove_same_exponent(self.pk[0], self.participantkeys[self.dealerid],self.sk,self.group))
-        #msg[1] = self.sharedkey * 2
         for j in self.participantids:
             self.send_function(j, msg)
 

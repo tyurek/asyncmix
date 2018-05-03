@@ -131,7 +131,7 @@ class HBVss2Recipient:
     #checks if an implicate message is valid
     def check_implication(self, implicatorid, key, proof):
         #First check if they key that was sent is valid
-        if not check_same_exponent_proof(proof, self.pk[0],self.participantkeys[self.dealerid], self.participantkeys[implicatorid], key):
+        if not check_same_exponent_proof(proof, self.pk[0],self.participantkeys[self.dealerid], self.participantkeys[implicatorid], key, self.group):
             #print "Bad Key!"
             return False
         share = self.decrypt(key, self.encshares[implicatorid])
