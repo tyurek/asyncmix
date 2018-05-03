@@ -1,6 +1,7 @@
 from charm.toolbox.pairinggroup import PairingGroup,ZR,G1,G2,GT,pair
 from base64 import encodestring, decodestring
 import random
+import hashlib
 
 #unknown results will occur if denominator does not perfectly divide numerator
 #an input of [a,b,c] corresponds to cx^2 + bx + a
@@ -215,6 +216,21 @@ def check_commitment_integrity(commitments, t, group):
         points.append([i, commitments[i]])
     out = True
     for i in range(t+1,len(commitments)):
-        out = out and (interpolate_at_x(points[:t+1], points[i][0], group) == (points[i ][1]))
+        out = out and (interpolate_at_x(points[:t+1], points[i][0], group) == (points[i][1]))
     return out
 
+#Let g1=e1^exp and g2=e2^exp. Generate a ZK proof that 
+#g1 and g2 are the result of raising e1 and e2 to the same exponent
+def prove_same_exponent(e1,e2,exp,group):
+    blind = group.random(ZR)
+    k1 = e1 ** blind
+    k2 = e2 ** blind
+    challenge = hexstring_to_ZR(hashlib.sha256(str(k1) + str(k2)).hexdigest(), group)
+    s = blind - challenge*exp
+    return [k1, k2, challenge, s]
+
+#"proof" is a list of the form [k1, k2, challenge, s]
+def check_same_exponent_proof(proof, e1, e2, g1, g2):
+    eq1 = str(proof[0]) == str(e1 ** proof[3] * g1 ** proof[2])
+    eq2 = str(proof[1]) == str(e2 ** proof[3] * g2 ** proof[2])
+    return eq1 and eq2

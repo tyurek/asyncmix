@@ -1,5 +1,6 @@
 from HBVss2Dealer import *
 from HBVss2Recipient import *
+from EvilHBVss2Recipient import *
 import os
 import gevent
 from gevent import Greenlet
@@ -61,20 +62,23 @@ def main():
     threads = []
     participantpubkeys = {}
     participantprivkeys = {}
-    g = group.random(ZR)
     for j in participantids + [dealerid]:
         participantprivkeys[j] = group.random(ZR)
-        participantpubkeys[j] = g ** participantprivkeys[j]
+        participantpubkeys[j] = pk[0] ** participantprivkeys[j]
     time2 = os.times()
     #Initialize Players
     thread = Greenlet(HBVss2Dealer, k=n, t=t,  secret=42, pk=pk, sk=participantprivkeys[dealerid], participantids=participantids, participantkeys=participantpubkeys, group=group, symflag=symmetric, recv_function = recvs[dealerid], send_function=sends[dealerid])
     thread.start()
     threads.append(thread)
 
-    for i in range(n):
-        thread = Greenlet(HBVss2Recipient, k=n, t=t, nodeid=i+1+offset, sk=participantprivkeys[i], pk=pk, participantids=participantids, participantkeys=participantpubkeys, group=group, symflag=symmetric, send_function=sends[i+1+offset], recv_function=recvs[i+1+offset], reconstruction=False)
+    for i in range(n-1):
+        thread = Greenlet(HBVss2Recipient, k=n, t=t, nodeid=i+1+offset, sk=participantprivkeys[i], pk=pk, participantids=participantids, participantkeys=participantpubkeys, group=group, symflag=symmetric, send_function=sends[i+1+offset], recv_function=recvs[i+1+offset], reconstruction=True)
         thread.start()
         threads.append(thread)
+
+    thread = Greenlet(EvilHBVss2Recipient, k=n, t=t, nodeid=n+offset, sk=participantprivkeys[n-1], pk=pk, participantids=participantids, participantkeys=participantpubkeys, group=group, symflag=symmetric, send_function=sends[n+offset], recv_function=recvs[n+offset], reconstruction=True)
+    thread.start()
+    threads.append(thread)
 
     gevent.joinall(threads)
     print "Elapsed Time: " + str(os.times()[4] - time2[4])

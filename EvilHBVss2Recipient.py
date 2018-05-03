@@ -16,7 +16,7 @@ from reliablebroadcast import *
 
 
 #Class representing a participant in the scheme. t is the threshold and k is the number of participants
-class HBVss2Recipient:
+class EvilHBVss2Recipient:
     def __init__ (self, k, t, nodeid, sk, pk, participantids, participantkeys, group, symflag, send_function, recv_function, sid=1, reconstruction=True, seed=None):
         self.group = group
         self.send_function = send_function
@@ -67,11 +67,13 @@ class HBVss2Recipient:
             self.share = self.decrypt(self.sharedkey, message['shares'][self.nodeid])
             self.witness = self.decrypt(self.sharedkey, message['witnesses'][self.nodeid])
             self.commit = bytesToObject(message['commit'], self.group)
-            if self.pc.verify_eval(self.commit, self.nodeid, self.share, self.witness):
-                self.send_ok_msgs()
-                self.sendrecs = True
-            else:
-                self.send_implicate_msgs()
+            #if self.pc.verify_eval(self.commit, self.nodeid, self.share, self.witness):
+            #    self.send_ok_msgs()
+            #    self.sendrecs = True
+            #else:
+            #    self.send_implicate_msgs()
+            self.send_implicate_msgs()
+            self.finished = True
             while not self.queues["hbavss"].empty():
                 (i,o) = self.queues["hbavss"].get()
                 self.receive_msg(i,o)
@@ -79,16 +81,13 @@ class HBVss2Recipient:
             self.queues["hbavss"].put((sender,msg))
         elif msg[0] == "ok":
             #TODO: Enforce one OK message per participant
-            #print str(self.nodeid) + " got an ok from " + str(sender)
             self.okcount += 1
-            if not self.sharevalid and self.okcount >= 2*self.t + 1:
-                self.sharevalid = True
+            if self.okcount == 2*self.t + 1:
                 self.output = self.share
                 #print self.share
                 if self.reconstruction and self.sendrecs:
                     self.send_rec_msgs()
                     self.sendrecs = False
-            #TODO: Fix this part so it's fault tolerant
             if self.okcount == self.k and not self.reconstruction:
                 self.finished = True
         elif msg[0] == 'implicate':
@@ -103,7 +102,6 @@ class HBVss2Recipient:
                     self.send_rec_msgs()
                     self.sentdrecs = False
             else:
-                #print "Bad implicate!"
                 self.okcount += 1 
         elif msg[0] == 'rec':
             if self.pc.verify_eval(self.commit, sender, msg[1], msg[2]):
@@ -132,7 +130,6 @@ class HBVss2Recipient:
     def check_implication(self, implicatorid, key, proof):
         #First check if they key that was sent is valid
         if not check_same_exponent_proof(proof, self.pk[0],self.participantkeys[self.dealerid], self.participantkeys[implicatorid], key):
-            #print "Bad Key!"
             return False
         share = self.decrypt(key, self.encshares[implicatorid])
         witness = self.decrypt(key, self.encwitnesses[implicatorid])
@@ -147,8 +144,9 @@ class HBVss2Recipient:
     def send_implicate_msgs(self):
         msg = []
         msg.append("implicate")
-        msg.append(self.sharedkey)
+        msg.append(self.sharedkey**27)
         msg.append(prove_same_exponent(self.pk[0], self.participantkeys[self.dealerid],self.sk,self.group))
+        #msg[1] = self.sharedkey * 2
         for j in self.participantids:
             self.send_function(j, msg)
 
