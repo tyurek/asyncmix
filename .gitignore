@@ -2,4 +2,4 @@
 .vscode/
 current.vms
 charm/
-ec2/aws-config.json
+ec2/aws-config.secret.json
