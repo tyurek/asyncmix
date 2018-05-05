@@ -8,6 +8,8 @@ class AwsConfig:
 
     def __load(self):
         config = json.load(open('./ec2/aws-config.json'))
+        self.MPC_FRAMEWORK = config["mpc_framework"]
+        self.MPC_APP_NAME = config["mpc_app_name"]
         self.ACCESS_KEY_ID = config["access_key_id"]
         self.SECRET_ACCESS_KEY = config["secret_access_key"]
         self.REGION = config["region"]

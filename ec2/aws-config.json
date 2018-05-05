@@ -1,0 +1,21 @@
+{
+    "mpc_framework": "viff",
+    "mpc_app_name": "millionaires.py",
+
+    "access_key_id": "",
+    "secret_access_key": "",
+    
+    "vm_count": 3,
+    "vm_name": "samarth",
+
+    "key_file_path": " ~/Documents/crypto/aws-stuff/samarth.pem",
+    "key_name": "samarth",
+    
+    "sleep_timeout_in_seconds" : 5,
+
+    "region": "us-east-1",
+    "instance_type": "t2.micro",
+    "image_id": "ami-97785bed",
+    "instance_user_name": "ec2-user",
+    "security_group_ids": ["sg-0faaf975"]
+}

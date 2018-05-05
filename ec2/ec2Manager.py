@@ -121,7 +121,6 @@ class EC2Manager:
                 output = stdout.read()
 
                 if display_output and len(output) != 0:
-                    print()
                     print("########################### " + "OUTPUT FROM: " +
                           instance_id + " " + command + " ##################")
                     print(output.decode('utf-8'))
@@ -134,7 +133,6 @@ class EC2Manager:
 
                 err = stderr.read()
                 if display_output and len(err) != 0:
-                    print()
                     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~ " + "ERROR WHILE" +
                           " EXECUTING COMMAND ON: " + instance_id + " " +
                           command + " ~~~~~~~~~~~~~~~~~~~~~~~~~~~")

@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# AVSS setup
 sudo yum -y update
 sudo yum -y install gmp-devel git m4 python-devel openssl-devel gcc flex bison
 sudo pip install zfec
@@ -23,3 +25,18 @@ popd
 git clone -b multiple-processes https://github.com/tyurek/asyncmix.git
 mv asyncmix /home/ec2-user
 chmod 777 /home/ec2-user/asyncmix
+
+# Viff setup
+sudo yum -y install git gcc gmp-devel git
+sudo pip install twisted[tls]
+sudo pip install gmpy
+sudo pip uninstall -y pyasn1
+sudo easy_install pyasn1
+git clone -b asyncmix https://github.com/amiller/viff/
+mv viff/ /home/ec2-user
+pushd /home/ec2-user/viff
+python setup.py install --home=/home/ec2-user/opt
+echo 'export PYTHONPATH=$PYTHONPATH:/home/ec2-user/opt/lib/python' \
+	>> /home/ec2-user/.bashrc
+source /home/ec2-user/.bashrc
+popd
